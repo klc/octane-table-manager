@@ -15,6 +15,7 @@ class TableController extends Controller
     {
         $this->exceptTables = Config::get('octane-table-manager.except_tables', []);
     }
+
     public function index()
     {
         $routePrefix = Config::get('octane-table-manager.route_prefix', 'octane-table-manager');
@@ -39,7 +40,7 @@ class TableController extends Controller
             $table = [
                 'name' => $tableName,
                 'limit' => $tableLimit,
-                'count' => $stats['num']
+                'count' => $stats['num'],
             ];
 
             foreach ($columns as $columnName => $columnConfig) {
@@ -50,7 +51,7 @@ class TableController extends Controller
                 $table['columns'][] = [
                     'name' => $columnName,
                     'type' => $columnType,
-                    'length' => (int)$columnLength,
+                    'length' => (int) $columnLength,
                 ];
             }
 
@@ -70,28 +71,27 @@ class TableController extends Controller
 
         $tableData = [];
         $tableData['stats'] = $table->stats();
-        $tableData['stats']['memory'] = number_format(($table->memorySize / 1024), 2, '.', '') . ' KB' ;
+        $tableData['stats']['memory'] = number_format(($table->memorySize / 1024), 2, '.', '').' KB';
 
-        if (!$request->boolean('load_more')) {
+        if (! $request->boolean('load_more')) {
             $table->rewind();
         }
 
         if ($request->input('index')) {
             $data = $table->get($request->get('index'));
 
-            if (!$data) {
+            if (! $data) {
                 return response()->json(['message' => 'Item not found.'], 404);
             }
 
             $data['_i'] = $request->get('index');
 
             $tableData['rows'][] = $data;
-        }
-        else {
+        } else {
             for ($i = 0; $i < 50; $i++) {
                 $table->next();
 
-                if (!$table->valid()) {
+                if (! $table->valid()) {
                     break;
                 }
 
@@ -114,7 +114,7 @@ class TableController extends Controller
         $table = Octane::table($request->get('table'));
         $data = $table->get($request->get('key'));
 
-        if (!$data) {
+        if (! $data) {
             return response()->json(['message' => 'Item not found.'], 404);
         }
 
@@ -122,7 +122,7 @@ class TableController extends Controller
 
         $status = $table->set($request->get('key'), $data);
 
-        if (!$status) {
+        if (! $status) {
             return response()->json(['message' => 'Failed to update item.'], 400);
         }
 
@@ -139,7 +139,7 @@ class TableController extends Controller
 
         $status = $table->del($request->get('key'));
 
-        if (!$status) {
+        if (! $status) {
             return response()->json(['message' => 'Failed to delete item.'], 400);
         }
 
@@ -156,7 +156,7 @@ class TableController extends Controller
 
         $status = $table->set($request->input('index'), $request->array('data'));
 
-        if (!$status) {
+        if (! $status) {
             return response()->json(['message' => 'Failed to add new item.'], 400);
         }
 

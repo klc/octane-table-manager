@@ -5,6 +5,7 @@ namespace KLC\OctaneTableManager;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+
 class OctaneTableManagerProvider extends ServiceProvider
 {
     public function boot()
@@ -32,5 +33,4 @@ class OctaneTableManagerProvider extends ServiceProvider
             ], 'otm-config');
         }
     }
-
 }
