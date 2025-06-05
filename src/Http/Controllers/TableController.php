@@ -146,7 +146,7 @@ class TableController extends Controller
         return response()->json(['message' => 'Delete is successful.']);
     }
 
-    public function addNewItem(Request $request)
+    public function store(Request $request)
     {
         if (in_array($request->get('table'), $this->exceptTables)) {
             return response()->json(['message' => 'Table is unavailable.'], 403);

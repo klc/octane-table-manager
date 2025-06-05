@@ -8,6 +8,6 @@ Route::controller(TableController::class)
         Route::get('/list', 'list');
         Route::get('/fetch', 'fetch');
         Route::delete('/delete', 'delete');
-        Route::post('/update', 'update');
-        Route::post('/add-new-item', 'addNewItem');
+        Route::patch('/update', 'update');
+        Route::post('/store', 'store');
     });

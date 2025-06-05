@@ -55,7 +55,7 @@ export default {
         editTableCell: function (event) {
             let { data, newValue, field } = event;
 
-            axios.post(`${routePrefix}/update`, {table: this.tableData.table.name, key: data._i, field: field, value: newValue})
+            axios.patch(`${routePrefix}/update`, {table: this.tableData.table.name, index: data._i, field: field, value: newValue})
                 .then((response) => {
                     this.$toast.add({ severity: 'success', summary: response.data.message, life: 3000 });
                     this.tableData.rows.find(row => row._i === data._i)[field] = newValue;
@@ -79,7 +79,7 @@ export default {
                     severity: 'danger'
                 },
                 accept: () => {
-                    axios.delete('table/delete', {params: {table: this.tableData.table.name, key: data._i}})
+                    axios.delete('table/delete', {params: {table: this.tableData.table.name, index: data._i}})
                         .then((response) => {
                             this.$toast.add({ severity: 'success', summary: response.data.message, life: 3000 });
 
@@ -98,7 +98,7 @@ export default {
             this.newItem.modalVisible = true;
         },
         addNewItem: function () {
-            axios.post(`${routePrefix}/add-new-item`, {table: this.tableData.table.name, index: this.newItem.index, data: this.newItem.data})
+            axios.post(`${routePrefix}/store`, {table: this.tableData.table.name, index: this.newItem.index, data: this.newItem.data})
                 .then((response) => {
                     this.$toast.add({ severity: 'success', summary: response.data.message, life: 3000 });
                 })
