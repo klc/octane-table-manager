@@ -1,0 +1,26 @@
+{
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite"
+    },
+    "devDependencies": {
+        "@primevue/auto-import-resolver": "^4.3.1",
+        "@tailwindcss/vite": "^4.0.9",
+        "axios": "^1.7.4",
+        "concurrently": "^9.0.1",
+        "laravel-vite-plugin": "^1.2.0",
+        "unplugin-vue-components": "^28.4.1",
+        "vite": "^6.0.11"
+    },
+    "dependencies": {
+        "@primeuix/themes": "^1.0.0",
+        "@vitejs/plugin-vue": "^5.2.1",
+        "primeicons": "^7.0.0",
+        "primevue": "^4.3.1",
+        "tailwindcss": "^4.0.9",
+        "tailwindcss-primeui": "^0.5.1",
+        "vue": "^3.5.13"
+    }
+}

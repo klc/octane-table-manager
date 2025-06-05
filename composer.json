@@ -1,0 +1,29 @@
+{
+    "name": "klc/octane-table-manager",
+    "description": "Octane Table Manager",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Mustafa Kılıç",
+            "email": "m_kilic@outlook.com.tr"
+        }
+    ],
+    "require": {
+        "php": ">=8.0",
+        "laravel/octane": ">=v2.0.0",
+        "laravel/framework": ">=v10.0.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "KLC\\OctaneTableManager\\": "src/"
+        }
+    },
+    "extra":{
+        "laravel": {
+            "providers": [
+                "KLC\\OctaneTableManager\\OctaneTableManagerProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev"
+}
