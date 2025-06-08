@@ -2,9 +2,13 @@
 
 namespace KLC\OctaneTableManager\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
+use KLC\OctaneTableManager\Http\Requests\DeleteRequest;
+use KLC\OctaneTableManager\Http\Requests\FetchRequest;
+use KLC\OctaneTableManager\Http\Requests\StoreRequest;
+use KLC\OctaneTableManager\Http\Requests\UpdateRequest;
 use Laravel\Octane\Facades\Octane;
 
 class TableController extends Controller
@@ -23,7 +27,7 @@ class TableController extends Controller
         return view('otm::index', compact('routePrefix'));
     }
 
-    public function list()
+    public function list(): JsonResponse
     {
         $tableConfig = Config::get('octane.tables');
 
@@ -61,13 +65,17 @@ class TableController extends Controller
         return response()->json($tables);
     }
 
-    public function fetch(Request $request)
+    public function fetch(FetchRequest $request): JsonResponse
     {
         if (in_array($request->get('table'), $this->exceptTables)) {
             return response()->json(['message' => 'Table is unavailable.'], 403);
         }
 
-        $table = Octane::table($request->get('table'));
+        try {
+            $table = Octane::table($request->get('table'));
+        } catch (\Throwable $exception) {
+            return response()->json(['message' => $exception->getMessage()], 500);
+        }
 
         $tableData = [];
         $tableData['stats'] = $table->stats();
@@ -105,59 +113,77 @@ class TableController extends Controller
         return response()->json($tableData);
     }
 
-    public function update(Request $request)
+    public function update(UpdateRequest $request): JsonResponse
     {
         if (in_array($request->get('table'), $this->exceptTables)) {
             return response()->json(['message' => 'Table is unavailable.'], 403);
         }
 
-        $table = Octane::table($request->get('table'));
-        $data = $table->get($request->get('key'));
+        try {
+            $table = Octane::table($request->get('table'));
 
-        if (! $data) {
-            return response()->json(['message' => 'Item not found.'], 404);
-        }
+            $data = $table->get($request->get('index'));
 
-        $data[$request->get('field')] = $request->get('value');
+            if (! $data) {
+                return response()->json(['message' => 'Item not found.'], 404);
+            }
 
-        $status = $table->set($request->get('key'), $data);
+            if (! isset($data[$request->get('field')])) {
+                return response()->json(['message' => 'Field not found.'], 404);
+            }
 
-        if (! $status) {
-            return response()->json(['message' => 'Failed to update item.'], 400);
+            $data[$request->get('field')] = $request->get('value');
+
+            $status = $table->set($request->get('index'), $data);
+
+            if (! $status) {
+                return response()->json(['message' => 'Failed to update item.'], 400);
+            }
+        } catch (\Throwable $exception) {
+            return response()->json(['message' => $exception->getMessage()], 500);
         }
 
         return response()->json(['message' => 'Update is successful.']);
     }
 
-    public function delete(Request $request)
+    public function delete(DeleteRequest $request): JsonResponse
     {
         if (in_array($request->get('table'), $this->exceptTables)) {
             return response()->json(['message' => 'Table is unavailable.'], 403);
         }
 
-        $table = Octane::table($request->get('table'));
+        try {
+            $table = Octane::table($request->get('table'));
 
-        $status = $table->del($request->get('key'));
+            $status = $table->del($request->get('index'));
 
-        if (! $status) {
-            return response()->json(['message' => 'Failed to delete item.'], 400);
+            if (! $status) {
+                return response()->json(['message' => 'Failed to delete item.'], 400);
+            }
+
+        } catch (\Throwable $exception) {
+            return response()->json(['message' => $exception->getMessage()], 500);
         }
 
         return response()->json(['message' => 'Delete is successful.']);
     }
 
-    public function store(Request $request)
+    public function store(StoreRequest $request): JsonResponse
     {
         if (in_array($request->get('table'), $this->exceptTables)) {
             return response()->json(['message' => 'Table is unavailable.'], 403);
         }
 
-        $table = Octane::table($request->get('table'));
+        try {
+            $table = Octane::table($request->get('table'));
+            $status = $table->set($request->input('index'), $request->array('data'));
 
-        $status = $table->set($request->input('index'), $request->array('data'));
+            if (! $status) {
+                return response()->json(['message' => 'Failed to add new item.'], 400);
+            }
 
-        if (! $status) {
-            return response()->json(['message' => 'Failed to add new item.'], 400);
+        } catch (\Throwable $exception) {
+            return response()->json(['message' => $exception->getMessage()], 500);
         }
 
         return response()->json(['message' => 'Add new item is successful.']);

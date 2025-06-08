@@ -23,7 +23,7 @@ export default {
         }
     },
     methods: {
-        fetchTableData: function (table, loadMore = false) {
+        fetchTableData: function (table, loadMore = 0) {
             if (!loadMore && !this.search_key) {
                 this.tableData = [];
             }
@@ -39,7 +39,6 @@ export default {
                         this.tableData['rows'] = [...this.tableData['rows'], ...response.data.rows];
                     }
 
-                    this.tableData['columns'] = table.columns;
                     this.tableData['stats'] = response.data.stats;
                     this.tableData['table'] = table;
 
@@ -112,6 +111,12 @@ export default {
         },
         columnName(column) {
             return column.name + " [" + column.type + ":" + column.length + "]";
+        },
+        intMaxVal(byte) {
+            return Math.ceil((255 ** byte) / 2);
+        },
+        intMinVal(byte) {
+            return Math.floor((255 ** byte) / 2);
         }
     },
     mounted() {
@@ -176,24 +181,33 @@ export default {
                     <Panel>
                         <div>
                             <InputText v-model="searchKey" type="text" size="small" placeholder="Index Search" />
-                            <Button class="ms-2" outlined icon="pi pi-search" @click="fetchTableData(this.tableData.table, false)"/>
+                            <Button class="ms-2" outlined icon="pi pi-search" @click="fetchTableData(this.tableData.table)"/>
                             <Button class="float-end me-4" outlined icon="pi pi-plus" @click="openNewItemModal" />
                         </div>
-                        <DataTable :value="tableData.rows" dataKey="_i" tableStyle="min-width: 50rem" scroll-height="80vh" :virtualScrollerOptions="{ itemSize: 40 }" editMode="cell" @cell-edit-complete="editTableCell">
+                        <DataTable :value="tableData.rows"
+                                   dataKey="_i"
+                                   tableStyle="min-width: 50rem"
+                                   scroll-height="80vh"
+                                   :virtualScrollerOptions="{ itemSize: 40 }"
+                                   editMode="cell"
+                                   @cell-edit-complete="editTableCell">
                             <Column field="_i" header="Index" />
-                            <Column v-for="column in tableData.columns" :field="column.name" :header="columnName(column)" :column-key="column.name">
+                            <Column v-for="column in tableData.table.columns"
+                                    :field="column.name"
+                                    :header="columnName(column)"
+                                    :column-key="column.name">
                                 <template #body="{ data, field }">
                                     {{ data[field] }}
                                 </template>
                                 <template #editor="{ data, field }">
                                     <template v-if="column.type === 'string' && column.length < 75">
-                                        <InputText v-model="data[field]" autofocus fluid />
+                                        <InputText v-model="data[field]" :maxlength="column.length" />
                                     </template>
                                     <template v-else-if="column.type === 'string' && column.length >= 75">
-                                        <Textarea v-model="data[field]" autofocus fluid />
+                                        <Textarea v-model="data[field]" :maxlength="column.length" />
                                     </template>
                                     <template v-else>
-                                        <InputNumber v-model="data[field]" autofocus fluid />
+                                        <InputNumber v-model="data[field]" :max="intMaxVal(column.length)" :min="intMinVal(column.length)" />
                                     </template>
                                 </template>
                             </Column>
@@ -204,7 +218,7 @@ export default {
                             </Column>
                         </DataTable>
                         <div class="mt-4">
-                            <Button @click="fetchTableData(tableData['table'], true)" :fluid="true" label="Load More" variant="outlined" />
+                            <Button @click="fetchTableData(tableData['table'], 1)" :fluid="true" label="Load More" variant="outlined" />
                         </div>
                     </Panel>
                     <!----------------------------- Table --------------------------->
@@ -217,12 +231,32 @@ export default {
         <Dialog v-model:visible="newItem.modalVisible" modal header="Add New Item" :style="{ width: '25rem' }">
             <div class="flex items-center gap-4 mb-4">
                 <label for="_i" class="font-semibold w-24">index</label>
-                <InputText v-model="newItem.index" id="_i" class="flex-auto" autocomplete="off"/>
+                <InputText v-model="newItem.index" id="_i" class="flex-auto" autocomplete="off" required maxlength="63"/>
             </div>
             <div class="flex items-center gap-4 mb-4" v-for="column in tableData.table.columns">
                 <label :for="column.name" class="font-semibold w-24">{{ column.name }}</label>
-                <InputText v-if="column.type === 'string'" :id="column.name" class="flex-auto" autocomplete="off" v-model="newItem.data[column.name]" />
-                <InputNumber v-else :id="column.name" class="flex-auto" autocomplete="off" v-model="newItem.data[column.name]" />
+
+                <InputText v-if="column.type === 'string' &&  column.length < 75"
+                           :id="column.name"
+                           class="flex-auto w-full"
+                           autocomplete="off"
+                           v-model="newItem.data[column.name]"
+                           :maxlength="column.length" />
+
+                <Textarea v-else-if="column.type === 'string' && column.length >= 75"
+                          :id="column.name"
+                          class="flex-auto w-full"
+                          autocomplete="off"
+                          v-model="newItem.data[column.name]"
+                          :maxlength="column.length"/>
+
+                <InputNumber v-else
+                             :id="column.name"
+                             class="flex-auto w-full"
+                             autocomplete="off"
+                             v-model="newItem.data[column.name]"
+                             :max="intMaxVal(column.length)"
+                             :min="intMinVal(column.length)" />
             </div>
             <div class="flex justify-end gap-2">
                 <Button type="button" label="Cancel" severity="secondary" @click="newItem.modalVisible = false"></Button>
