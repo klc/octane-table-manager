@@ -78,7 +78,7 @@ export default {
                     severity: 'danger'
                 },
                 accept: () => {
-                    axios.delete('table/delete', {params: {table: this.tableData.table.name, index: data._i}})
+                    axios.delete(`${routePrefix}/delete`, {params: {table: this.tableData.table.name, index: data._i}})
                         .then((response) => {
                             this.$toast.add({ severity: 'success', summary: response.data.message, life: 3000 });
 
