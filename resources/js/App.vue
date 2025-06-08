@@ -231,7 +231,7 @@ export default {
         <Dialog v-model:visible="newItem.modalVisible" modal header="Add New Item" :style="{ width: '25rem' }">
             <div class="flex items-center gap-4 mb-4">
                 <label for="_i" class="font-semibold w-24">index</label>
-                <InputText v-model="newItem.index" id="_i" class="flex-auto" autocomplete="off" required maxlength="63"/>
+                <InputText v-model="newItem.index" id="_i" class="flex-auto w-full" autocomplete="off" required maxlength="63"/>
             </div>
             <div class="flex items-center gap-4 mb-4" v-for="column in tableData.table.columns">
                 <label :for="column.name" class="font-semibold w-24">{{ column.name }}</label>
