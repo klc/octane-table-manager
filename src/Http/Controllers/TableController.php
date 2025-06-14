@@ -97,8 +97,6 @@ class TableController extends Controller
             $tableData['rows'][] = $data;
         } else {
             for ($i = 0; $i < 50; $i++) {
-                $table->next();
-
                 if (! $table->valid()) {
                     break;
                 }
@@ -107,6 +105,8 @@ class TableController extends Controller
                 $row['_i'] = $table->key();
 
                 $tableData['rows'][] = $row;
+
+                $table->next();
             }
         }
 
