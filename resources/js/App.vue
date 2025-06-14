@@ -116,7 +116,7 @@ export default {
             return Math.ceil((255 ** byte) / 2);
         },
         intMinVal(byte) {
-            return Math.floor((255 ** byte) / 2);
+            return 0 - Math.floor((255 ** byte) / 2);
         }
     },
     mounted() {
