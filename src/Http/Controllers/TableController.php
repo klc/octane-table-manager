@@ -23,8 +23,9 @@ class TableController extends Controller
     public function index()
     {
         $routePrefix = Config::get('octane-table-manager.route_prefix', 'octane-table-manager');
+        $baseUrl = url($routePrefix);
 
-        return view('otm::index', compact('routePrefix'));
+        return view('otm::index', compact('baseUrl'));
     }
 
     public function list(): JsonResponse

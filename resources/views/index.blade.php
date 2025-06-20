@@ -19,7 +19,7 @@
 <div id="app"></div>
 
 <script>
-    const routePrefix = "{{ $routePrefix }}";
+    const baseUrl = "{{ $baseUrl }}";
 </script>
 </body>
 </html>

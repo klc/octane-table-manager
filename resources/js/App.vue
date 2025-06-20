@@ -30,7 +30,7 @@ export default {
 
             this.tableLoader = true;
 
-            axios.get(`${routePrefix}/fetch`, {params: {table: table.name, index: this.searchKey, load_more: loadMore}})
+            axios.get(`${baseUrl}/fetch`, {params: {table: table.name, index: this.searchKey, load_more: loadMore}})
                 .then((response) => {
                     if (!loadMore) {
                         this.tableData['rows'] = response.data.rows;
@@ -54,7 +54,7 @@ export default {
         editTableCell: function (event) {
             let { data, newValue, field } = event;
 
-            axios.patch(`${routePrefix}/update`, {table: this.tableData.table.name, index: data._i, field: field, value: newValue})
+            axios.patch(`${baseUrl}/update`, {table: this.tableData.table.name, index: data._i, field: field, value: newValue})
                 .then((response) => {
                     this.$toast.add({ severity: 'success', summary: response.data.message, life: 3000 });
                     this.tableData.rows.find(row => row._i === data._i)[field] = newValue;
@@ -78,7 +78,7 @@ export default {
                     severity: 'danger'
                 },
                 accept: () => {
-                    axios.delete(`${routePrefix}/delete`, {params: {table: this.tableData.table.name, index: data._i}})
+                    axios.delete(`${baseUrl}/delete`, {params: {table: this.tableData.table.name, index: data._i}})
                         .then((response) => {
                             this.$toast.add({ severity: 'success', summary: response.data.message, life: 3000 });
 
@@ -97,7 +97,7 @@ export default {
             this.newItem.modalVisible = true;
         },
         addNewItem: function () {
-            axios.post(`${routePrefix}/store`, {table: this.tableData.table.name, index: this.newItem.index, data: this.newItem.data})
+            axios.post(`${baseUrl}/store`, {table: this.tableData.table.name, index: this.newItem.index, data: this.newItem.data})
                 .then((response) => {
                     this.$toast.add({ severity: 'success', summary: response.data.message, life: 3000 });
                 })
@@ -120,9 +120,9 @@ export default {
         }
     },
     mounted() {
-        console.log("route prefix : ", routePrefix);
+        console.log("route prefix : ", baseUrl);
 
-        axios.get(`${routePrefix}/list`)
+        axios.get(`${baseUrl}/list`)
             .then((response) => {
                 this.tables = response.data;
             })
