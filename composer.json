@@ -25,6 +25,11 @@
             ]
         }
     },
+    "scripts": {
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=otm-assets --ansi --force"
+        ]
+    },
     "minimum-stability": "dev",
     "require-dev": {
         "laravel/pint": "dev-main"
