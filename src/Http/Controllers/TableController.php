@@ -30,11 +30,12 @@ class TableController extends Controller
 
     public function list(): JsonResponse
     {
-        $tableConfig = Config::get('octane.tables');
+        $tableConfig = Config::get('octane.tables') ?? [];
 
         $tables = [];
         foreach ($tableConfig as $tableKey => $columns) {
-            [$tableName, $tableLimit] = explode(':', $tableKey);
+            // Same defaults as Octane's bin/createSwooleTables.php.
+            [$tableName, $tableLimit] = explode(':', $tableKey) + [1 => 1000];
 
             if (in_array($tableName, $this->exceptTables)) {
                 continue;
@@ -51,7 +52,7 @@ class TableController extends Controller
             foreach ($columns as $columnName => $columnConfig) {
                 $column = explode(':', $columnConfig);
                 $columnType = $column[0];
-                $columnLength = $column[1] ?? 8;
+                $columnLength = $column[1] ?? 1000;
 
                 $table['columns'][] = [
                     'name' => $columnName,
