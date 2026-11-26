@@ -101,19 +101,18 @@ export default {
             });
         },
         openNewItemModal: function () {
-            this.newItem.modalVisible = true;
+            // Start empty each time, so no values or columns carry over from an earlier table.
+            this.newItem = {modalVisible: true, index: '', data: {}};
         },
         addNewItem: function () {
             axios.post(`${baseUrl}/store`, {table: this.tableData.table.name, index: this.newItem.index, data: this.newItem.data})
                 .then((response) => {
                     this.$toast.add({ severity: 'success', summary: response.data.message, life: 3000 });
+                    this.newItem.modalVisible = false;
+                    this.fetchTableData(this.tableData.table);
                 })
                 .catch((error) => {
                     this.showError(error);
-                })
-                .finally(() => {
-                    this.newItem.modalVisible = false;
-                    this.fetchTableData(this.tableData.table);
                 });
         },
         showError(error) {
