@@ -182,6 +182,17 @@ await page.keyboard.press('Escape');
 
 // API through the browser session
 check('index over 63 bytes -> 422', (await api('post', '/store', { table: 'users', index: 'x'.repeat(64), data: { name: 'x' } }))[0] === 422);
+// The limit is in bytes: 40 ş are 40 characters but 80 bytes. 31 ş (62 bytes) still fit; docs takes the extra row.
+const wide = 'ş'.repeat(40), fits = 'ş'.repeat(31);
+const wideRes = [await api('post', '/store', { table: 'users', index: wide, data: { name: 'x' } }),
+    await api('get', '/fetch?table=users&index=' + encodeURIComponent(wide)),
+    await api('get', '/fetch?table=users&keys[]=u1&keys[]=' + encodeURIComponent(wide)),
+    await api('patch', '/update', { table: 'users', index: wide, field: 'name', value: 'x' }),
+    await api('delete', '/delete?table=users&index=' + encodeURIComponent(wide))];
+const fitsRes = [await api('post', '/store', { table: 'docs', index: fits, data: { data: 'x' } }),
+    await api('delete', '/delete?table=docs&index=' + encodeURIComponent(fits))];
+check('multibyte index over 63 bytes -> 422 everywhere, 62 bytes still stored', wideRes.every(r => r[0] === 422) && fitsRes.every(r => r[0] === 200),
+    JSON.stringify([wideRes.map(r => r[0]), fitsRes.map(r => r[0]), wideRes[0][1]]));
 check('value over the column size -> 422', (await api('patch', '/update', { table: 'users', index: 'u2', field: 'name', value: 'ş'.repeat(40) }))[0] === 422);
 check('index "0" can be found', (await api('post', '/store', { table: 'nosize', index: '0', data: { v: 5 } }))[0] === 200
     && (await api('get', '/fetch?table=nosize&index=0'))[1]?.rows?.length === 1);

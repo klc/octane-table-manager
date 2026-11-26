@@ -15,7 +15,7 @@ class DeleteRequest extends FormRequest
     {
         return [
             'table' => 'required|string',
-            'index' => 'required|string|max:63',
+            'index' => ['required', 'string', new SwooleKey],
         ];
     }
 }

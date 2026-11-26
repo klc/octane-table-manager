@@ -16,11 +16,11 @@ class FetchRequest extends FormRequest
         return [
             'table' => 'required|string',
             'offset' => 'nullable|integer|min:0',
-            'index' => 'nullable|string|max:63',
+            'index' => ['nullable', 'string', new SwooleKey],
             'column' => 'nullable|string',
             'value' => 'nullable|string',
             'keys' => 'nullable|array|max:200',
-            'keys.*' => 'string|max:63',
+            'keys.*' => ['string', new SwooleKey],
         ];
     }
 }
