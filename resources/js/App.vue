@@ -56,7 +56,11 @@ export default {
                 });
         },
         editTableCell: function (event) {
-            let { data, newValue, field } = event;
+            let { data, value, newValue, field } = event;
+
+            if (newValue === value) {
+                return;
+            }
 
             axios.patch(`${baseUrl}/update`, {table: this.tableData.table.name, index: data._i, field: field, value: newValue})
                 .then((response) => {
