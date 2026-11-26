@@ -186,6 +186,11 @@ class TableController extends Controller
 
         try {
             $table = Octane::table($request->get('table'));
+
+            if ($table->exists($request->input('index'))) {
+                return response()->json(['message' => 'An item with this index already exists.'], 409);
+            }
+
             $status = $table->set($request->input('index'), (array) $request->input('data'));
 
             if (! $status) {

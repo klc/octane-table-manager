@@ -15,7 +15,7 @@ class StoreRequest extends FormRequest
     {
         return [
             'table' => 'required|string',
-            'index' => 'required|string',
+            'index' => 'required|string|max:63',
             'data' => 'required|array',
         ];
     }

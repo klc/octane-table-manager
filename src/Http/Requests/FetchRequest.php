@@ -16,7 +16,7 @@ class FetchRequest extends FormRequest
         return [
             'table' => 'required|string',
             'offset' => 'nullable|integer|min:0',
-            'index' => 'nullable|string',
+            'index' => 'nullable|string|max:63',
         ];
     }
 }
