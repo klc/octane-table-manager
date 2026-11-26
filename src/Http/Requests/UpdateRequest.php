@@ -17,7 +17,7 @@ class UpdateRequest extends FormRequest
             'table' => 'required|string',
             'index' => 'required|string|max:63',
             'field' => 'required|string',
-            'value' => 'required',
+            'value' => 'present',
         ];
     }
 }

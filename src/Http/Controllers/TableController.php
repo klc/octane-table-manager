@@ -143,7 +143,8 @@ class TableController extends Controller
             }
 
             // Write only this column: writing the whole row back would undo another worker's change to the others.
-            $status = $table->set($request->get('index'), [$request->get('field') => $request->get('value')]);
+            // ConvertEmptyStringsToNull turns an emptied cell into null; store it as ''.
+            $status = $table->set($request->get('index'), [$request->get('field') => $request->input('value') ?? '']);
 
             if (! $status) {
                 return response()->json(['message' => 'Failed to update item.'], 400);
