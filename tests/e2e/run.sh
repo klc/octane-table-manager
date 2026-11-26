@@ -55,7 +55,7 @@ echo "== Laravel $VERSION: $(in_app 'php artisan --version')"
 
 start local
 curl -sf "http://localhost:$PORT/otm-e2e/seed" >/dev/null
-OTM_E2E_URL="http://localhost:$PORT" node "$E2E/e2e.mjs"
+OTM_E2E_URL="http://localhost:$PORT" OTM_E2E_LOG="$APP/storage/logs/laravel.log" node "$E2E/e2e.mjs"
 
 start local true
 curl -sf "http://localhost:$PORT/otm-e2e/seed" >/dev/null

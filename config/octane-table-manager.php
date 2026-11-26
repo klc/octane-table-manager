@@ -11,4 +11,6 @@ return [
     'except_tables' => [],
     // Look but do not touch: every request that would change a table answers 403.
     'read_only' => (bool) env('OTM_READ_ONLY', false),
+    // Every change is logged (user, table, index, field; never the values). null = the app's default channel.
+    'log_channel' => env('OTM_LOG_CHANNEL'),
 ];

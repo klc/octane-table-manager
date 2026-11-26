@@ -1,5 +1,6 @@
 // Browser and API checks against a running test app (see run.sh). Exits 1 if any check fails.
 import { chromium } from 'playwright-core';
+import { readFileSync } from 'node:fs';
 
 const APP = process.env.OTM_E2E_URL ?? 'http://localhost:8097';
 const BASE = APP + '/octane-table-manager';
@@ -190,6 +191,13 @@ await page.getByRole('button', { name: 'Clear table' }).last().click();
 const cleared = await toast();
 await waitTable('nosize');
 check('clear table empties it', /rows deleted/.test(cleared) && (await (await fetch(`${BASE}/fetch?table=nosize`)).json()).stats.num === 0, cleared);
+
+// --- Change log ---
+const secret = 'audit-' + Date.now();
+await api('patch', '/update', { table: 'users', index: 'u2', field: 'bio', value: secret });
+const logLines = readFileSync(process.env.OTM_E2E_LOG, 'utf8').split('\n').filter(l => l.includes('Octane table changed'));
+check('changes are logged with table, index and field', /"action":"update","table":"users","index":"u2","field":"bio"/.test(logLines.at(-1) ?? ''), logLines.at(-1));
+check('logged changes leave the value out', logLines.every(l => !l.includes(secret)));
 
 // --- JSON cells ---
 await open('docs');

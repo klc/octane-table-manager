@@ -20,6 +20,8 @@
   memory), and clear a table after a confirmation.
 - JSON cells: a button shows the value indented, and the editor opens it indented and saves it compact.
   Numbers keep their exact text (no JSON.parse round trip), and text that is no longer JSON is refused.
+- Every change is logged (user, IP, action, table, index, field; no values) to `OTM_LOG_CHANNEL` or the default
+  channel.
 - Read-only mode (`OTM_READ_ONLY=true`): edit controls are hidden and every write answers 403.
 - Index search takes patterns (`user_*`, `?`), and rows can be filtered by a column: text contains (any case),
   numbers equal. Load More pages through the matches.

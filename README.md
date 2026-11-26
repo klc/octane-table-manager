@@ -43,6 +43,9 @@ Routes use the `web` middleware group by default (session, CSRF). If you publish
 Set `OTM_READ_ONLY=true` to browse without being able to change anything: the UI hides the edit controls and the
 server answers 403 to every request that would write.
 
+Every change is logged to the app's default log channel (`OTM_LOG_CHANNEL` picks another): who, which table,
+index and field. Values are left out, since tables can hold tokens or personal data.
+
 If there are any tables you don't want to be listed, you should add their names to the `except_tables` array in the config file.
 
 ![otmindex.png](screenshots/otm-index.png?t=1749120687517)
