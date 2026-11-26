@@ -25,10 +25,6 @@ export default {
     },
     methods: {
         fetchTableData: function (table, loadMore = 0) {
-            if (!loadMore && !this.searchKey) {
-                this.tableData = [];
-            }
-
             // Load More keeps the table on screen; only a fresh load shows the full-page spinner.
             this[loadMore ? 'moreLoader' : 'tableLoader'] = true;
 
@@ -37,7 +33,8 @@ export default {
             axios.get(`${baseUrl}/fetch`, {params: {table: table.name, index: this.searchKey, offset: offset}})
                 .then((response) => {
                     if (!loadMore) {
-                        this.tableData['rows'] = response.data.rows;
+                        // Replace tableData only on success, so a failed search keeps the last good view.
+                        this.tableData = {table: table, rows: response.data.rows};
                     }
                     else {
                         // Rows written between pages shift offsets, so drop keys already shown.
@@ -47,7 +44,6 @@ export default {
 
                     this.tableData['hasMore'] = response.data.has_more;
                     this.tableData['stats'] = response.data.stats;
-                    this.tableData['table'] = table;
 
                     this.tables.find(t => t.name === table.name).count = response.data.stats.num;
                 })
@@ -155,7 +151,7 @@ export default {
         <div class="card flex-1/6 py-4 px-2">
             <PanelMenu :model="tables" class="w-full">
                 <template #item="{ item }">
-                    <a @click="fetchTableData(item)" v-ripple class="flex items-center px-4 py-2 cursor-pointer group">
+                    <a @click="searchKey = null; fetchTableData(item)" v-ripple class="flex items-center px-4 py-2 cursor-pointer group">
                         <span :class="['ml-2']">{{ item.name }}</span>
                         <Badge v-if="item.limit" class="ml-auto" :value="item.limit + '/' + item.count" />
                     </a>
@@ -165,7 +161,7 @@ export default {
         <!-------------------------- Sidebar ------------------------>
 
         <div class="flex-5/6 py-4 px-2">
-            <div v-if="tableData !== null">
+            <div v-if="tableData !== null || tableLoader">
                 <div class="text-center h-dvh" v-if="tableLoader">
                     <i class="pi pi-spin pi-spinner absolute top-50" style="font-size: 8rem"></i>
                 </div>
