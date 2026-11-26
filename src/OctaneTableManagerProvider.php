@@ -29,10 +29,6 @@ class OctaneTableManagerProvider extends ServiceProvider
 
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__.'/../public/vendor/octane-table-manager' => public_path('vendor/octane-table-manager'),
-            ], 'otm-assets');
-
-            $this->publishes([
                 __DIR__.'/../config/octane-table-manager.php' => config_path('octane-table-manager.php'),
             ], 'otm-config');
         }

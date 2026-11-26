@@ -2,6 +2,7 @@
 
 namespace KLC\OctaneTableManager\Http\Controllers;
 
+use Illuminate\Foundation\Vite;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Config;
@@ -13,6 +14,19 @@ use Laravel\Octane\Facades\Octane;
 
 class TableController extends Controller
 {
+    // Built assets are served from the package itself, so a composer update is all an upgrade needs.
+    private const DIST = __DIR__.'/../../../public/vendor/octane-table-manager';
+
+    private const MIME_TYPES = [
+        'js' => 'text/javascript',
+        'css' => 'text/css',
+        'woff2' => 'font/woff2',
+        'woff' => 'font/woff',
+        'ttf' => 'font/ttf',
+        'eot' => 'application/vnd.ms-fontobject',
+        'svg' => 'image/svg+xml',
+    ];
+
     private $exceptTables = [];
 
     public function __construct()
@@ -26,7 +40,33 @@ class TableController extends Controller
         // Relative, so a TLS-terminating proxy cannot turn it into http:// (mixed content).
         $baseUrl = request()->getBaseUrl().'/'.trim($routePrefix, '/');
 
-        return view('otm::index', compact('baseUrl'));
+        if (is_file(self::DIST.'/octane-table-manager.hot')) {
+            // `npm run dev` while working on the package. A fresh Vite instance leaves the app's own one untouched.
+            $assets = (new Vite)->useHotFile(self::DIST.'/octane-table-manager.hot')
+                ->withEntryPoints(['resources/css/app.css', 'resources/js/app.js'])
+                ->toHtml();
+        } else {
+            $manifest = json_decode(file_get_contents(self::DIST.'/manifest.json'), true);
+            $assets = sprintf(
+                '<link rel="stylesheet" href="%s"><script type="module" src="%s"></script>',
+                e($baseUrl.'/'.$manifest['resources/css/app.css']['file']),
+                e($baseUrl.'/'.$manifest['resources/js/app.js']['file']),
+            );
+        }
+
+        return view('otm::index', compact('baseUrl', 'assets'));
+    }
+
+    public function asset(string $file)
+    {
+        $path = self::DIST.'/assets/'.basename($file);
+
+        abort_unless(is_file($path), 404);
+
+        return response()->file($path, [
+            'Content-Type' => self::MIME_TYPES[pathinfo($path, PATHINFO_EXTENSION)] ?? 'application/octet-stream',
+            'Cache-Control' => 'public, max-age=31536000, immutable',
+        ]);
     }
 
     public function list(): JsonResponse

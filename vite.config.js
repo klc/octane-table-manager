@@ -6,6 +6,8 @@ import Components from 'unplugin-vue-components/vite';
 import {PrimeVueResolver} from '@primevue/auto-import-resolver';
 
 export default defineConfig({
+    // Relative URLs inside the CSS (icon fonts), so they resolve under the package's asset route.
+    base: './',
     plugins: [
         laravel({
             hotFile: 'public/vendor/octane-table-manager/octane-table-manager.hot',
