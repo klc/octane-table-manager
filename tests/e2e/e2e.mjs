@@ -181,6 +181,10 @@ check('octane:cache has no edit controls', await page.locator('button:has(.pi-pl
     && await page.getByText('Read-only').count() === 1);
 check('octane:cache refuses writes', (await api('patch', '/update', { table: 'octane:cache', index: 'e2e-key', field: 'value', value: 'x' }))[0] === 403
     && (await api('delete', '/truncate?table=octane:cache'))[0] === 403);
+// The table named in the query must not win over the one in the body that the read-only guard checked.
+const split = await api('delete', '/delete?table=octane:cache', { table: 'users', index: 'e2e-key' });
+check('octane:cache cannot be written through a query/body split', (await api('get', '/fetch?table=octane:cache&index=e2e-key'))[1]?.rows?.length === 1,
+    JSON.stringify(split));
 
 // --- Export and clear ---
 const exported = await (await fetch(`${BASE}/export?table=users`)).json();

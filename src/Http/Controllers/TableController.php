@@ -144,12 +144,12 @@ class TableController extends Controller
 
     public function fetch(FetchRequest $request): JsonResponse
     {
-        if (in_array($request->get('table'), $this->exceptTables)) {
+        if (in_array($request->input('table'), $this->exceptTables)) {
             return response()->json(['message' => 'Table is unavailable.'], 403);
         }
 
         try {
-            $table = $this->table($request->get('table'));
+            $table = $this->table($request->input('table'));
         } catch (\Throwable $exception) {
             return response()->json(['message' => $exception->getMessage()], 500);
         }
@@ -224,26 +224,26 @@ class TableController extends Controller
 
     public function update(UpdateRequest $request): JsonResponse
     {
-        if (in_array($request->get('table'), $this->exceptTables)) {
+        if (in_array($request->input('table'), $this->exceptTables)) {
             return response()->json(['message' => 'Table is unavailable.'], 403);
         }
 
         try {
-            $table = $this->table($request->get('table'));
+            $table = $this->table($request->input('table'));
 
-            $data = $table->get($request->get('index'));
+            $data = $table->get($request->input('index'));
 
             if (! $data) {
                 return response()->json(['message' => 'Item not found.'], 404);
             }
 
-            if (! isset($data[$request->get('field')])) {
+            if (! isset($data[$request->input('field')])) {
                 return response()->json(['message' => 'Field not found.'], 404);
             }
 
             // Write only this column: writing the whole row back would undo another worker's change to the others.
             // ConvertEmptyStringsToNull turns an emptied cell into null; store it as ''.
-            $status = $table->set($request->get('index'), [$request->get('field') => $request->input('value') ?? '']);
+            $status = $table->set($request->input('index'), [$request->input('field') => $request->input('value') ?? '']);
 
             if (! $status) {
                 return response()->json(['message' => 'Failed to update item.'], 400);
@@ -339,14 +339,14 @@ class TableController extends Controller
 
     public function delete(DeleteRequest $request): JsonResponse
     {
-        if (in_array($request->get('table'), $this->exceptTables)) {
+        if (in_array($request->input('table'), $this->exceptTables)) {
             return response()->json(['message' => 'Table is unavailable.'], 403);
         }
 
         try {
-            $table = $this->table($request->get('table'));
+            $table = $this->table($request->input('table'));
 
-            $status = $table->del($request->get('index'));
+            $status = $table->del($request->input('index'));
 
             if (! $status) {
                 return response()->json(['message' => 'Failed to delete item.'], 400);
@@ -361,12 +361,12 @@ class TableController extends Controller
 
     public function store(StoreRequest $request): JsonResponse
     {
-        if (in_array($request->get('table'), $this->exceptTables)) {
+        if (in_array($request->input('table'), $this->exceptTables)) {
             return response()->json(['message' => 'Table is unavailable.'], 403);
         }
 
         try {
-            $table = $this->table($request->get('table'));
+            $table = $this->table($request->input('table'));
 
             if ($table->exists($request->input('index'))) {
                 return response()->json(['message' => 'An item with this index already exists.'], 409);
