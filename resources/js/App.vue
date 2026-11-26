@@ -23,6 +23,7 @@ export default {
             filterValue: '',
             tableFilter: '',
             jsonView: {visible: false, title: '', text: ''},
+            dark: document.documentElement.classList.contains('p-dark'),
             live: false,
             liveTimer: null,
             liveBusy: false,
@@ -192,6 +193,16 @@ export default {
             this.filterValue = '';
             this.fetchTableData(table);
         },
+        toggleTheme() {
+            this.dark = !this.dark;
+            document.documentElement.classList.toggle('p-dark', this.dark);
+
+            try {
+                localStorage.setItem('otm-theme', this.dark ? 'dark' : 'light');
+            } catch (e) {
+                // Private mode or blocked storage: the choice lasts until reload.
+            }
+        },
         toggleLive() {
             this.live = !this.live;
             clearInterval(this.liveTimer);
@@ -283,6 +294,7 @@ export default {
                 <InputText v-model="tableFilter" size="small" placeholder="Filter tables" class="flex-1 min-w-0" />
                 <Button :outlined="!sortByUsage" size="small" icon="pi pi-sort-amount-down" title="Sort by usage, fullest first"
                         @click="sortByUsage = !sortByUsage" />
+                <Button text size="small" :icon="dark ? 'pi pi-sun' : 'pi pi-moon'" :title="dark ? 'Light theme' : 'Dark theme'" @click="toggleTheme" />
             </div>
             <PanelMenu :model="visibleTables" class="w-full">
                 <template #item="{ item }">

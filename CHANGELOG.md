@@ -20,6 +20,7 @@
   memory), and clear a table after a confirmation.
 - JSON cells: a button shows the value indented, and the editor opens it indented and saves it compact.
   Numbers keep their exact text (no JSON.parse round trip), and text that is no longer JSON is refused.
+- Dark theme: follows the system setting until the moon/sun button picks one, which is remembered.
 - Live view: the rows on screen are re-read by key every 2 seconds (no table walk), changes and deletions made
   elsewhere show up; it pauses while a cell or dialog is open.
 - Every change is logged (user, IP, action, table, index, field; no values) to `OTM_LOG_CHANNEL` or the default

@@ -11,7 +11,9 @@ const app = createApp(App);
 
 app.use(PrimeVue, {
     theme: {
-        preset: Aura
+        preset: Aura,
+        // Dark when <html> has .p-dark: set before the app loads (see index.blade.php) and by the theme button.
+        options: { darkModeSelector: '.p-dark' }
     }
 });
 app.use(ConfirmationService);

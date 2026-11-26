@@ -276,6 +276,20 @@ check('UI column filter', (await vm()).rows === 11);
 await open('ints');
 check('switching table clears the column filter', await page.evaluate(() => document.querySelector('#app')._vnode.component.proxy.filterColumn) === null);
 
+// --- Theme ---
+const bg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+const lightBg = await bg();
+await page.locator('button[title="Dark theme"]').click();
+const darkBg = await bg();
+await page.reload();
+await page.locator('.p-badge').first().waitFor();
+check('dark theme applies and survives a reload', lightBg === 'rgb(255, 255, 255)' && darkBg !== lightBg
+    && await page.evaluate(() => document.documentElement.classList.contains('p-dark')) && await bg() === darkBg, `${lightBg} -> ${darkBg}`);
+if (process.env.OTM_E2E_SHOT) {
+    await page.screenshot({ path: process.env.OTM_E2E_SHOT });
+}
+await page.locator('button[title="Light theme"]').click();
+
 check('no page errors', errors.length === 0, errors.join(' | '));
 await browser.close();
 
