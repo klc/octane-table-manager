@@ -41,7 +41,12 @@ class TableController extends Controller
                 continue;
             }
 
-            $stats = Octane::table($tableName)->stats();
+            try {
+                $stats = Octane::table($tableName)->stats();
+            } catch (\Throwable $exception) {
+                // e.g. not running on Swoole: "Tables may only be accessed when using the Swoole server."
+                return response()->json(['message' => $exception->getMessage()], 500);
+            }
 
             $table = [
                 'name' => $tableName,

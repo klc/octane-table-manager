@@ -140,6 +140,9 @@ export default {
             .then((response) => {
                 this.tables = response.data;
             })
+            .catch((error) => {
+                this.showError(error);
+            })
     }
 }
 </script>
