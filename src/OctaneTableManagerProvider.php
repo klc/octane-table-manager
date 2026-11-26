@@ -8,6 +8,11 @@ use Illuminate\Support\ServiceProvider;
 
 class OctaneTableManagerProvider extends ServiceProvider
 {
+    public function register()
+    {
+        $this->mergeConfigFrom(__DIR__.'/../config/octane-table-manager.php', 'octane-table-manager');
+    }
+
     public function boot()
     {
         $routePrefix = Config::get('octane-table-manager.route_prefix', 'octane-table-manager');
