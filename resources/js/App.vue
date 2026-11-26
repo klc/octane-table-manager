@@ -30,13 +30,17 @@ export default {
 
             this.tableLoader = true;
 
-            axios.get(`${baseUrl}/fetch`, {params: {table: table.name, index: this.searchKey, load_more: loadMore}})
+            const offset = loadMore ? this.tableData.rows.length : 0;
+
+            axios.get(`${baseUrl}/fetch`, {params: {table: table.name, index: this.searchKey, offset: offset}})
                 .then((response) => {
                     if (!loadMore) {
                         this.tableData['rows'] = response.data.rows;
                     }
                     else {
-                        this.tableData['rows'] = [...this.tableData['rows'], ...response.data.rows];
+                        // Rows written between pages shift offsets, so drop keys already shown.
+                        const known = new Set(this.tableData.rows.map(row => row._i));
+                        this.tableData['rows'] = [...this.tableData['rows'], ...response.data.rows.filter(row => !known.has(row._i))];
                     }
 
                     this.tableData['stats'] = response.data.stats;

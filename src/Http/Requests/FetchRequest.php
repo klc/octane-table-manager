@@ -15,7 +15,7 @@ class FetchRequest extends FormRequest
     {
         return [
             'table' => 'required|string',
-            'load_more' => 'nullable|boolean',
+            'offset' => 'nullable|integer|min:0',
             'index' => 'nullable|string',
         ];
     }

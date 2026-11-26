@@ -83,10 +83,6 @@ class TableController extends Controller
         $tableData['stats']['memory'] = number_format(($table->memorySize / 1024), 2, '.', '').' KB';
         $tableData['rows'] = [];
 
-        if (! $request->boolean('load_more')) {
-            $table->rewind();
-        }
-
         if ($request->input('index')) {
             $data = $table->get($request->get('index'));
 
@@ -98,17 +94,21 @@ class TableController extends Controller
 
             $tableData['rows'][] = $data;
         } else {
-            for ($i = 0; $i < 50; $i++) {
-                if (! $table->valid()) {
-                    break;
+            // The iterator cursor is per worker process, so each request walks from the start.
+            // ponytail: O(offset) skip per page, fine for Octane-sized tables.
+            $skip = $request->integer('offset');
+
+            foreach ($table as $key => $row) {
+                if ($skip-- > 0) {
+                    continue;
                 }
 
-                $row = $table->current();
-                $row['_i'] = $table->key();
-
+                $row['_i'] = $key;
                 $tableData['rows'][] = $row;
 
-                $table->next();
+                if (count($tableData['rows']) === 50) {
+                    break;
+                }
             }
         }
 
