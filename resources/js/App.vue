@@ -162,7 +162,8 @@ export default {
         </div>
         <!-------------------------- Sidebar ------------------------>
 
-        <div class="flex-5/6 py-4 px-2">
+        <!-- min-w-0: let this column shrink instead of growing to the table's width and pushing the page sideways. -->
+        <div class="flex-5/6 min-w-0 py-4 px-2">
             <div v-if="tableData !== null || tableLoader">
                 <div class="text-center h-dvh" v-if="tableLoader">
                     <i class="pi pi-spin pi-spinner absolute top-50" style="font-size: 8rem"></i>
@@ -202,8 +203,8 @@ export default {
                         <DataTable :value="tableData.rows"
                                    dataKey="_i"
                                    tableStyle="min-width: 50rem"
-                                   scroll-height="80vh"
-                                   :virtualScrollerOptions="{ itemSize: 40 }"
+                                   scrollable
+                                   scroll-height="calc(100dvh - 20rem)"
                                    editMode="cell"
                                    @cell-edit-complete="editTableCell">
                             <Column field="_i" header="Index" />
@@ -212,7 +213,8 @@ export default {
                                     :header="columnName(column)"
                                     :column-key="column.name">
                                 <template #body="{ data, field }">
-                                    {{ data[field] }}
+                                    <!-- Long values (tokens, JSON, paragraphs) stay within 20rem and 3 lines; hover shows all. -->
+                                    <div class="line-clamp-3 max-w-xs break-words" :title="data[field]">{{ data[field] }}</div>
                                 </template>
                                 <template #editor="{ data, field }">
                                     <template v-if="column.type === 'string' && column.length < 75">
