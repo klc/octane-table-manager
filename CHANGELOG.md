@@ -14,6 +14,8 @@
 
 - Sidebar badges turn yellow / red as a table runs out of conflict slots. A Swoole table holds about 1.7x its
   configured size; inserts fail (Laravel raises an ErrorException) when a new key collides and no slot is left.
+- JSON cells: a button shows the value indented, and the editor opens it indented and saves it compact.
+  Numbers keep their exact text (no JSON.parse round trip), and text that is no longer JSON is refused.
 - Read-only mode (`OTM_READ_ONLY=true`): edit controls are hidden and every write answers 403.
 - Index search takes patterns (`user_*`, `?`), and rows can be filtered by a column: text contains (any case),
   numbers equal. Load More pages through the matches.

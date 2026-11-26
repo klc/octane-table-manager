@@ -14,6 +14,9 @@ return [
     'tiny:64' => [
         'v' => 'int',
     ],
+    'docs:64' => [
+        'data' => 'string:500',
+    ],
     'ints:16' => [
         'i1' => 'int:1',
         'i8' => 'int:8',

@@ -5,10 +5,12 @@ import Dialog from 'primevue/dialog';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Toast from 'primevue/toast';
+import JsonEditor from './JsonEditor.vue';
+import { formatJson, isJson } from './json.js';
 
 export default {
     name: "App",
-    components: {ConfirmDialog, Dialog, InputText, InputNumber, Toast},
+    components: {ConfirmDialog, Dialog, InputText, InputNumber, Toast, JsonEditor},
     data() {
         return {
             readOnly: readOnly, // set by the page from config('octane-table-manager.read_only')
@@ -20,6 +22,7 @@ export default {
             filterColumn: null,
             filterValue: '',
             tableFilter: '',
+            jsonView: {visible: false, title: '', text: ''},
             sortByUsage: false,
             newItem: {
                 modalVisible: false,
@@ -76,6 +79,20 @@ export default {
 
             if (newValue === value) {
                 return;
+            }
+
+            if (isJson(value)) {
+                // Save compact like the app stored it, and only if it is still JSON.
+                if (!isJson(newValue)) {
+                    this.$toast.add({ severity: 'error', summary: 'Not valid JSON, nothing was saved.', life: 3000 });
+                    return;
+                }
+
+                newValue = formatJson(newValue, 0);
+
+                if (newValue === value) {
+                    return;
+                }
             }
 
             axios.patch(`${baseUrl}/update`, {table: this.tableData.table.name, index: data._i, field: field, value: newValue})
@@ -140,6 +157,14 @@ export default {
             this.filterColumn = null;
             this.filterValue = '';
             this.fetchTableData(table);
+        },
+        isJson,
+        // Decided on the stored value, so the editor does not switch while the text is briefly invalid.
+        storedIsJson(data, field) {
+            return isJson(this.tableData.rows.find(row => row._i === data._i)?.[field]);
+        },
+        showJson(field, row) {
+            this.jsonView = {visible: true, title: `${row._i} · ${field}`, text: formatJson(row[field], 2)};
         },
         usageSeverity(usage) {
             return usage >= 0.8 ? 'danger' : usage >= 0.5 ? 'warn' : undefined;
@@ -255,10 +280,17 @@ export default {
                                     :column-key="column.name">
                                 <template #body="{ data, field }">
                                     <!-- Long values (tokens, JSON, paragraphs) stay within 20rem and 3 lines; hover shows all. -->
-                                    <div class="line-clamp-3 max-w-xs break-words" :title="data[field]">{{ data[field] }}</div>
+                                    <div class="flex items-start gap-1">
+                                        <div class="line-clamp-3 max-w-xs break-words" :class="{'font-mono text-xs': isJson(data[field])}" :title="data[field]">{{ data[field] }}</div>
+                                        <Button v-if="isJson(data[field])" text size="small" icon="pi pi-code" title="View formatted JSON"
+                                                @click.stop="showJson(field, data)" />
+                                    </div>
                                 </template>
                                 <template #editor="{ data, field }">
-                                    <template v-if="column.type === 'string' && column.length < 75">
+                                    <template v-if="column.type === 'string' && storedIsJson(data, field)">
+                                        <JsonEditor v-model="data[field]" />
+                                    </template>
+                                    <template v-else-if="column.type === 'string' && column.length < 75">
                                         <InputText v-model="data[field]" :maxlength="column.length" />
                                     </template>
                                     <template v-else-if="column.type === 'string' && column.length >= 75">
@@ -321,6 +353,10 @@ export default {
             </div>
         </Dialog>
         <!-------------------------- New Item Dialog ------------------------->
+
+        <Dialog v-model:visible="jsonView.visible" modal :header="jsonView.title" :style="{ width: '40rem' }">
+            <pre class="text-xs overflow-auto max-h-[70vh]">{{ jsonView.text }}</pre>
+        </Dialog>
 
         <ConfirmDialog></ConfirmDialog>
     </div>

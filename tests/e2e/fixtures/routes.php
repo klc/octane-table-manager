@@ -7,7 +7,7 @@ Route::get('/otm-e2e/ping', fn () => 'pong');
 
 // Same data on every run: 230 users, nothing else.
 Route::get('/otm-e2e/seed', function () {
-    foreach (['users', 'nosize', 'ints', 'tiny'] as $name) {
+    foreach (['users', 'nosize', 'ints', 'tiny', 'docs'] as $name) {
         $table = Octane::table($name);
         $keys = [];
         foreach ($table as $key => $row) {
@@ -20,6 +20,9 @@ Route::get('/otm-e2e/seed', function () {
     for ($i = 1; $i <= 230; $i++) {
         $users->set("u$i", ['name' => "user $i", 'age' => $i, 'score' => $i + 0.125, 'bio' => str_repeat('b', 10)]);
     }
+
+    // Digits JSON.parse would change (2^64, 1.50) and brackets inside a string.
+    Octane::table('docs')->set('d1', ['data' => '{"id":12345678901234567890,"price":1.50,"name":"old","note":"a {b} [c]","tags":[]}']);
 
     return $users->count();
 });

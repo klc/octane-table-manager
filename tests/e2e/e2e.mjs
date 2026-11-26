@@ -164,6 +164,31 @@ check('index "0" can be found', (await api('post', '/store', { table: 'nosize', 
 const csrf = (await fetch(BASE + '/store', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: '{}' })).status;
 check('foreign POST without XSRF token -> 419', csrf === 419, String(csrf));
 
+// --- JSON cells ---
+await open('docs');
+await page.locator('tbody button:has(.pi-code)').click();
+const shown = await page.locator('.p-dialog pre').innerText();
+check('JSON view is indented and keeps the digits', shown.includes('"id": 12345678901234567890,') && shown.includes('"price": 1.50,'), shown.slice(0, 60));
+await page.keyboard.press('Escape');
+const jsonCell = page.locator('tbody tr').first().locator('td').nth(1);
+const sent = patches.length;
+await jsonCell.click();
+check('JSON editor opens indented', (await page.locator('tbody textarea').inputValue()).includes('\n  "name": "old"'));
+await page.keyboard.press('Tab');
+await page.waitForTimeout(400);
+check('opening and leaving a JSON cell sends nothing', patches.length === sent);
+await jsonCell.click();
+await page.locator('tbody textarea').fill((await page.locator('tbody textarea').inputValue()).replace('"old"', '"new"'));
+await page.keyboard.press('Tab');
+await page.waitForTimeout(600);
+check('edited JSON is saved compact with exact digits', patches.length === sent + 1
+    && JSON.parse(patches.at(-1)).value === '{"id":12345678901234567890,"price":1.50,"name":"new","note":"a {b} [c]","tags":[]}', patches.at(-1));
+await clearToasts();
+await jsonCell.click();
+await page.locator('tbody textarea').fill('{"broken": ');
+await page.keyboard.press('Tab');
+check('invalid JSON is refused', (await toast()).includes('Not valid JSON') && patches.length === sent + 1);
+
 // --- Pattern and column filters (on fresh data) ---
 await fetch(APP + '/otm-e2e/seed');
 const get = async qs => (await fetch(`${BASE}/fetch?table=users&${qs}`, { headers: { Accept: 'application/json' } })).json().then(d => d, () => null);
