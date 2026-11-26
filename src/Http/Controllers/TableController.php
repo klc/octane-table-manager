@@ -166,8 +166,16 @@ class TableController extends Controller
         $index = (string) $request->input('index');
         $column = $request->input('column');
 
+        // keys[]: the rows the UI already shows, re-read one by one for live view; no walk over the table.
+        if ($request->has('keys')) {
+            foreach ($request->input('keys') as $key) {
+                if ($row = $table->get($key)) {
+                    $row['_i'] = $key;
+                    $tableData['rows'][] = $row;
+                }
+            }
         // An index without wildcards is a direct lookup; a pattern (user_*) or a column filter walks the table.
-        if ($index !== '' && strpbrk($index, '*?[') === false) {
+        } elseif ($index !== '' && strpbrk($index, '*?[') === false) {
             $data = $table->get($index);
 
             if (! $data) {

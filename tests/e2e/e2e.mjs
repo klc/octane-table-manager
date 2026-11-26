@@ -192,6 +192,25 @@ const cleared = await toast();
 await waitTable('nosize');
 check('clear table empties it', /rows deleted/.test(cleared) && (await (await fetch(`${BASE}/fetch?table=nosize`)).json()).stats.num === 0, cleared);
 
+// --- Live view ---
+await open('users');
+const liveReqs = [];
+page.on('request', r => { if (r.url().includes('keys')) liveReqs.push(r.url()); });
+const firstKeys = await page.evaluate(() => document.querySelector('#app')._vnode.component.proxy.tableData.rows.slice(0, 2).map(r => r._i));
+await page.getByRole('button', { name: 'Live' }).click();
+const liveName = 'live ' + Date.now() % 10000;
+await api('patch', '/update', { table: 'users', index: firstKeys[0], field: 'name', value: liveName });
+await api('delete', `/delete?table=users&index=${firstKeys[1]}`);
+await page.waitForTimeout(4500);
+const liveRows = await page.evaluate(() => document.querySelector('#app')._vnode.component.proxy.tableData.rows.map(r => [r._i, r.name]));
+check('live view picks up a change made elsewhere', liveRows.some(([k, n]) => k === firstKeys[0] && n === liveName));
+check('live view drops a row deleted elsewhere', !liveRows.some(([k]) => k === firstKeys[1]) && liveRows.length === 49, String(liveRows.length));
+check('live view reads rows by key, not by walking the table', liveReqs.length >= 1 && liveReqs.every(u => !u.includes('offset')));
+await page.getByRole('button', { name: 'Live' }).click();
+const after = liveReqs.length;
+await page.waitForTimeout(2500);
+check('live view stops when turned off', liveReqs.length === after);
+
 // --- Change log ---
 const secret = 'audit-' + Date.now();
 await api('patch', '/update', { table: 'users', index: 'u2', field: 'bio', value: secret });

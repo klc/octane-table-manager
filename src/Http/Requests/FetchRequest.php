@@ -19,6 +19,8 @@ class FetchRequest extends FormRequest
             'index' => 'nullable|string|max:63',
             'column' => 'nullable|string',
             'value' => 'nullable|string',
+            'keys' => 'nullable|array|max:200',
+            'keys.*' => 'string|max:63',
         ];
     }
 }

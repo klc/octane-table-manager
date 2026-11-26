@@ -23,6 +23,9 @@ export default {
             filterValue: '',
             tableFilter: '',
             jsonView: {visible: false, title: '', text: ''},
+            live: false,
+            liveTimer: null,
+            liveBusy: false,
             sortByUsage: false,
             newItem: {
                 modalVisible: false,
@@ -181,10 +184,54 @@ export default {
                 });
         },
         openTable(table) {
+            if (this.live) {
+                this.toggleLive();
+            }
             this.searchKey = null;
             this.filterColumn = null;
             this.filterValue = '';
             this.fetchTableData(table);
+        },
+        toggleLive() {
+            this.live = !this.live;
+            clearInterval(this.liveTimer);
+
+            if (this.live) {
+                this.liveTimer = setInterval(this.refreshShown, 2000);
+            }
+        },
+        // Live view: re-read the rows on screen by key (at most 200) every 2 s. It never walks the table, so it
+        // stays cheap on big tables; rows added elsewhere show up on the next search or Load More.
+        refreshShown() {
+            const busy = this.liveBusy || document.querySelector('.p-datatable tbody input, .p-datatable tbody textarea, .p-dialog');
+
+            if (busy || !this.tableData?.rows?.length) {
+                return;
+            }
+
+            const table = this.tableData.table;
+            const shown = this.tableData.rows.slice(0, 200);
+            this.liveBusy = true;
+
+            axios.get(`${baseUrl}/fetch`, {params: {table: table.name, keys: shown.map(row => row._i)}})
+                .then(({ data }) => {
+                    if (this.tableData?.table !== table) {
+                        return;
+                    }
+
+                    // Fresh values in place; rows deleted elsewhere drop out.
+                    const fresh = Object.fromEntries(data.rows.map(row => [row._i, row]));
+                    this.tableData.rows = [...shown.filter(row => fresh[row._i]).map(row => fresh[row._i]), ...this.tableData.rows.slice(200)];
+                    this.tableData.stats = data.stats;
+                    Object.assign(this.tables.find(t => t.name === table.name), {count: data.stats.num, usage: data.usage});
+                })
+                .catch((error) => {
+                    this.showError(error);
+                    this.toggleLive();
+                })
+                .finally(() => {
+                    this.liveBusy = false;
+                });
         },
         isJson,
         // Decided on the stored value, so the editor does not switch while the text is briefly invalid.
@@ -210,6 +257,9 @@ export default {
                 ? {min: Number.MIN_SAFE_INTEGER, max: Number.MAX_SAFE_INTEGER, maxFractionDigits: 0, useGrouping: false}
                 : {maxFractionDigits: 15, useGrouping: false};
         }
+    },
+    unmounted() {
+        clearInterval(this.liveTimer);
     },
     mounted() {
         axios.get(`${baseUrl}/list`)
@@ -292,6 +342,8 @@ export default {
                                        title="Text columns: contains (any case). Numbers: equals." @keyup.enter="fetchTableData(tableData.table)" />
                             <Button outlined icon="pi pi-search" @click="fetchTableData(tableData.table)"/>
                             <div class="ms-auto me-4 flex items-center gap-2">
+                                <Button :outlined="!live" size="small" :icon="live ? 'pi pi-sync pi-spin' : 'pi pi-sync'" label="Live"
+                                        title="Re-read the rows on screen every 2 seconds" @click="toggleLive" />
                                 <Button as="a" :href="exportUrl('json')" text size="small" icon="pi pi-download" label="JSON" title="Download every row as JSON" />
                                 <Button as="a" :href="exportUrl('csv')" text size="small" icon="pi pi-download" label="CSV" title="Download every row as CSV" />
                                 <Tag v-if="tableReadOnly" severity="secondary" value="Read-only" />
