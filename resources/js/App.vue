@@ -46,7 +46,7 @@ export default {
                     this.tableData['stats'] = response.data.stats;
                     this.tableData['server'] = response.data.server;
 
-                    this.tables.find(t => t.name === table.name).count = response.data.stats.num;
+                    Object.assign(this.tables.find(t => t.name === table.name), {count: response.data.stats.num, usage: response.data.usage});
                 })
                 .catch((error) => {
                     this.showError(error);
@@ -120,6 +120,9 @@ export default {
                     this.showError(error);
                 });
         },
+        usageSeverity(usage) {
+            return usage >= 0.8 ? 'danger' : usage >= 0.5 ? 'warn' : undefined;
+        },
         showError(error) {
             this.$toast.add({ severity: 'error', summary: error.response?.data?.message ?? error.message, life: 3000 });
         },
@@ -157,7 +160,8 @@ export default {
                     <a @click="searchKey = null; fetchTableData(item)" v-ripple class="flex items-center gap-2 px-4 py-2 cursor-pointer group">
                         <!-- A long name gets an ellipsis (full name on hover) instead of running into the badge. -->
                         <span class="ml-2 truncate" :title="item.name">{{ item.name }}</span>
-                        <Badge v-if="item.limit" class="ml-auto shrink-0" :value="item.count + '/' + item.limit" />
+                        <Badge v-if="item.limit" class="ml-auto shrink-0" :value="item.count + '/' + item.limit" :severity="usageSeverity(item.usage)"
+                               :title="'Conflict slots in use: ' + Math.round(item.usage * 100) + '%. New keys start failing at 100% (around 1.7x the table size).'" />
                     </a>
                 </template>
             </PanelMenu>

@@ -1,7 +1,8 @@
 // Browser and API checks against a running test app (see run.sh). Exits 1 if any check fails.
 import { chromium } from 'playwright-core';
 
-const BASE = (process.env.OTM_E2E_URL ?? 'http://localhost:8097') + '/octane-table-manager';
+const APP = process.env.OTM_E2E_URL ?? 'http://localhost:8097';
+const BASE = APP + '/octane-table-manager';
 let failed = 0;
 const check = (name, ok, extra = '') => {
     if (!ok) failed++;
@@ -14,6 +15,9 @@ const pages = await Promise.all([0, 50, 100, 150, 200, 250].map(page_));
 const keys = pages.flat();
 check('parallel pages across workers', JSON.stringify(pages.map(p => p.length)) === '[50,50,50,50,30,0]' && new Set(keys).size === 230,
     JSON.stringify(pages.map(p => p.length)));
+
+// Fill the tiny table until Swoole refuses a row, for the capacity warning.
+await fetch(APP + '/otm-e2e/fill/tiny');
 
 // --- Browser ---
 const browser = await chromium.launch({ channel: process.env.PW_CHANNEL, headless: true });
@@ -41,6 +45,9 @@ const api = (method, url, data) => page.evaluate(async ([m, u, d]) => {
 await page.goto(BASE);
 await page.locator('.p-badge').first().waitFor();
 
+const badgeClass = name => page.locator('.p-panelmenu a', { hasText: name }).locator('.p-badge').getAttribute('class');
+check('full table gets a red badge', (await badgeClass('tiny')).includes('p-badge-danger'));
+check('roomy table has no warning', !/p-badge-(danger|warn)/.test(await badgeClass('users')));
 check('sidebar badge count/limit', (await page.locator('.p-panelmenu a', { hasText: 'users' }).locator('.p-badge').innerText()) === '230/2048');
 
 await open('users');

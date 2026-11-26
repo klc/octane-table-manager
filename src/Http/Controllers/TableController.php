@@ -95,6 +95,7 @@ class TableController extends Controller
                 'name' => $tableName,
                 'limit' => $tableLimit,
                 'count' => $stats['num'],
+                'usage' => self::usage($stats),
             ];
 
             foreach ($columns as $columnName => $columnConfig) {
@@ -134,6 +135,7 @@ class TableController extends Controller
         $tableData['stats']['memory'] = number_format(($table->memorySize / 1024), 2, '.', '').' KB';
         $tableData['rows'] = [];
         $tableData['has_more'] = false;
+        $tableData['usage'] = self::usage($tableData['stats']);
         // Each Octane server keeps its own tables; say which one answered.
         $tableData['server'] = gethostname();
 
@@ -255,5 +257,14 @@ class TableController extends Controller
         }
 
         return response()->json(['message' => 'Add new item is successful.']);
+    }
+
+    /**
+     * Share of the conflict slots in use. A Swoole table takes about 1.7x its size in rows (measured on
+     * Swoole 6.3); set() fails once a new key collides and no slot is left, whatever the row count says.
+     */
+    private static function usage(array $stats): float
+    {
+        return $stats['total_slice_num'] > 0 ? round(1 - $stats['available_slice_num'] / $stats['total_slice_num'], 2) : 0;
     }
 }

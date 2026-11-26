@@ -7,7 +7,7 @@ Route::get('/otm-e2e/ping', fn () => 'pong');
 
 // Same data on every run: 230 users, nothing else.
 Route::get('/otm-e2e/seed', function () {
-    foreach (['users', 'nosize', 'ints'] as $name) {
+    foreach (['users', 'nosize', 'ints', 'tiny'] as $name) {
         $table = Octane::table($name);
         $keys = [];
         foreach ($table as $key => $row) {
@@ -22,4 +22,21 @@ Route::get('/otm-e2e/seed', function () {
     }
 
     return $users->count();
+});
+
+// Writes rows into a table until Swoole refuses one; reports the stats along the way.
+Route::get('/otm-e2e/fill/{name}', function (string $name) {
+    $table = Octane::table($name);
+    $samples = [];
+    for ($i = 0; ; $i++) {
+        try {
+            $table->set("fill$i", []);
+        } catch (\Throwable $e) {
+            return ['size' => $table->getSize(), 'failed_at' => $table->count(), 'error' => $e->getMessage(), 'samples' => $samples];
+        }
+        if ($i % max(1, intdiv($table->getSize(), 8)) === 0) {
+            $s = $table->stats();
+            $samples[] = [$s['num'], $s['available_slice_num'], $s['total_slice_num']];
+        }
+    }
 });
