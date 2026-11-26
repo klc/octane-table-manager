@@ -63,10 +63,11 @@ class TableController extends Controller
 
         abort_unless(is_file($path), 404);
 
+        // BinaryFileResponse marks itself public; these responses carry the session cookies.
         return response()->file($path, [
             'Content-Type' => self::MIME_TYPES[pathinfo($path, PATHINFO_EXTENSION)] ?? 'application/octet-stream',
-            'Cache-Control' => 'public, max-age=31536000, immutable',
-        ]);
+            'Cache-Control' => 'max-age=31536000, immutable',
+        ])->setPrivate();
     }
 
     public function list(): JsonResponse
