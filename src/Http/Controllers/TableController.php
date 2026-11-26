@@ -105,6 +105,8 @@ class TableController extends Controller
                     'name' => $columnName,
                     'type' => $columnType,
                     'length' => (int) $columnLength,
+                    // As written in config/octane.php, for the column header.
+                    'definition' => $columnConfig,
                 ];
             }
 

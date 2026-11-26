@@ -123,7 +123,7 @@ export default {
             this.$toast.add({ severity: 'error', summary: error.response?.data?.message ?? error.message, life: 3000 });
         },
         columnName(column) {
-            return column.name + " [" + column.type + ":" + column.length + "]";
+            return column.name + " [" + column.definition + "]";
         },
         numberProps(column) {
             // Swoole stores every int column as int64 whatever size the config gives.
