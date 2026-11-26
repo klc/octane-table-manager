@@ -90,7 +90,7 @@ class TableController extends Controller
         $tableData['rows'] = [];
         $tableData['has_more'] = false;
 
-        if ($request->input('index')) {
+        if ($request->filled('index')) {
             $data = $table->get($request->get('index'));
 
             if (! $data) {
