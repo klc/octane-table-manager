@@ -142,9 +142,8 @@ class TableController extends Controller
                 return response()->json(['message' => 'Field not found.'], 404);
             }
 
-            $data[$request->get('field')] = $request->get('value');
-
-            $status = $table->set($request->get('index'), $data);
+            // Write only this column: writing the whole row back would undo another worker's change to the others.
+            $status = $table->set($request->get('index'), [$request->get('field') => $request->get('value')]);
 
             if (! $status) {
                 return response()->json(['message' => 'Failed to update item.'], 400);
