@@ -90,7 +90,10 @@ export default {
                         .then((response) => {
                             this.$toast.add({ severity: 'success', summary: response.data.message, life: 3000 });
 
-                            this.fetchTableData(this.tableData.table);
+                            // Drop the row in place so the pages already loaded stay.
+                            this.tableData.rows = this.tableData.rows.filter(row => row._i !== data._i);
+                            this.tableData.stats.num--;
+                            this.tables.find(t => t.name === this.tableData.table.name).count--;
                         })
                         .catch((error) => {
                             this.showError(error);
