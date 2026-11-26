@@ -325,6 +325,14 @@ try { nfExport = JSON.parse(nfExportText); } catch { }
 check('JSON export with INF and NAN parses and has every row', nfExport?.length === nfCount
     && JSON.stringify(nfScores(nfExport.filter(r => r._index.startsWith('nf-')).map(r => ({ _i: r._index, score: r.score })))) === '{"nf-inf":"INF","nf-nan":"NAN","nf-ninf":"-INF"}',
     nfExport ? `${nfExport.length}/${nfCount}` : nfExportText.slice(0, 40));
+// A float needing more than 14 digits (microtime(true)) goes out exact, and INF, -INF and NAN as the same text as in JSON.
+const csvFloatKey = nfExport?.find(r => !r._index.startsWith('nf-'))?._index;
+const csvPatch = await api('patch', '/update', { table: 'users', index: csvFloatKey, field: 'score', value: 1764240000.123456 });
+const nfCsvLines = (await (await fetch(`${BASE}/export?table=users&format=csv`)).text()).trim().split('\n');
+const csvScores = nfScores(nfCsvLines.slice(1).map(l => l.split(',')).filter(([k]) => k === csvFloatKey || k.startsWith('nf-')).map(c => ({ _i: c[0], score: c[3] })));
+check('CSV export writes floats exact and INF, -INF and NAN as text', csvPatch[0] === 200 && nfCsvLines[0] === '_index,name,age,score,bio' && nfCsvLines.length === nfCount + 1
+    && JSON.stringify(csvScores) === JSON.stringify(nfScores([[csvFloatKey, '1764240000.123456'], ['nf-inf', 'INF'], ['nf-ninf', '-INF'], ['nf-nan', 'NAN']].map(([_i, score]) => ({ _i, score })))),
+    JSON.stringify([csvPatch[0], nfCsvLines.length, nfCount, csvScores]));
 await page.getByPlaceholder('Index Search').fill('nf-inf');
 await page.locator('button:has(.pi-search)').click();
 const nfShown = await page.waitForFunction(() => { const r = document.querySelector('#app')._vnode.component.proxy.tableData.rows; return r.length === 1 && r[0]._i === 'nf-inf'; },

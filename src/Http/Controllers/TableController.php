@@ -296,7 +296,8 @@ class TableController extends Controller
                     if ($first) {
                         fputcsv($buffer, ['_index', ...array_keys($row)], escape: '');
                     }
-                    fputcsv($buffer, [$key, ...array_values($row)], escape: '');
+                    // fputcsv rounds floats to 14 digits (the precision ini); var_export writes them exact, like JSON.
+                    fputcsv($buffer, [$key, ...array_map(fn ($cell) => is_float($cell) ? var_export($cell, true) : $cell, array_values(self::encodable($row)))], escape: '');
                 } else {
                     fwrite($buffer, ($first ? '[' : ',').json_encode(['_index' => $key] + self::encodable($row), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE));
                 }
