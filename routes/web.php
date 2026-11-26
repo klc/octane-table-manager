@@ -9,7 +9,9 @@ Route::controller(TableController::class)
         Route::get('/assets/{file}', 'asset');
         Route::get('/list', 'list');
         Route::get('/fetch', 'fetch');
+        Route::get('/export', 'export');
         Route::delete('/delete', 'delete');
+        Route::delete('/truncate', 'truncate');
         Route::patch('/update', 'update');
         Route::post('/store', 'store');
     });

@@ -137,6 +137,30 @@ export default {
                 }
             });
         },
+        exportUrl(format) {
+            return `${baseUrl}/export?table=${encodeURIComponent(this.tableData.table.name)}&format=${format}`;
+        },
+        truncateConfirm() {
+            const table = this.tableData.table;
+
+            this.$confirm.require({
+                message: `Delete every row of ${table.name}? This cannot be undone.`,
+                header: 'Clear table',
+                icon: 'pi pi-exclamation-triangle',
+                rejectProps: {label: 'Cancel', severity: 'secondary', outlined: true},
+                acceptProps: {label: 'Clear table', severity: 'danger'},
+                accept: () => {
+                    axios.delete(`${baseUrl}/truncate`, {params: {table: table.name}})
+                        .then((response) => {
+                            this.$toast.add({ severity: 'success', summary: response.data.message, life: 3000 });
+                            this.openTable(table);
+                        })
+                        .catch((error) => {
+                            this.showError(error);
+                        });
+                },
+            });
+        },
         openNewItemModal: function () {
             // Start empty each time, so no values or columns carry over from an earlier table.
             this.newItem = {modalVisible: true, index: '', data: {}};
@@ -263,8 +287,15 @@ export default {
                             <InputText v-model="filterValue" size="small" :disabled="!filterColumn" placeholder="Value"
                                        title="Text columns: contains (any case). Numbers: equals." @keyup.enter="fetchTableData(tableData.table)" />
                             <Button outlined icon="pi pi-search" @click="fetchTableData(tableData.table)"/>
-                            <Tag v-if="readOnly" class="ms-auto me-4" severity="secondary" value="Read-only" />
-                            <Button v-else class="ms-auto me-4" outlined icon="pi pi-plus" @click="openNewItemModal" />
+                            <div class="ms-auto me-4 flex items-center gap-2">
+                                <Button as="a" :href="exportUrl('json')" text size="small" icon="pi pi-download" label="JSON" title="Download every row as JSON" />
+                                <Button as="a" :href="exportUrl('csv')" text size="small" icon="pi pi-download" label="CSV" title="Download every row as CSV" />
+                                <Tag v-if="readOnly" severity="secondary" value="Read-only" />
+                                <template v-else>
+                                    <Button text size="small" severity="danger" icon="pi pi-eraser" title="Clear table" @click="truncateConfirm" />
+                                    <Button outlined icon="pi pi-plus" @click="openNewItemModal" />
+                                </template>
+                            </div>
                         </div>
                         <DataTable :value="tableData.rows"
                                    dataKey="_i"

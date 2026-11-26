@@ -21,6 +21,8 @@ if (process.argv[2] === 'read-only') {
     check('read-only: update -> 403', await call('patch', '/update', { table: 'users', index: 'u1', field: 'name', value: 'x' }) === 403);
     check('read-only: store -> 403', await call('post', '/store', { table: 'users', index: 'ro', data: { name: 'x' } }) === 403);
     check('read-only: delete -> 403', await call('delete', '/delete?table=users&index=u1') === 403);
+    check('read-only: clear table -> 403', await call('delete', '/truncate?table=users') === 403);
+    check('read-only: export still works', await call('get', '/export?table=users') === 200);
     check('read-only: no add or delete buttons', await page.locator('button:has(.pi-plus), button:has(.pi-trash)').count() === 0);
     await page.locator('tbody tr').first().locator('td').nth(1).click();
     check('read-only: cells do not open an editor', await page.locator('tbody input, tbody textarea').count() === 0);
@@ -163,6 +165,22 @@ check('index "0" can be found', (await api('post', '/store', { table: 'nosize', 
 // From outside the browser: no session, no token, no Sec-Fetch-Site (Laravel 13 lets same-origin browser requests through on that header).
 const csrf = (await fetch(BASE + '/store', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: '{}' })).status;
 check('foreign POST without XSRF token -> 419', csrf === 419, String(csrf));
+
+// --- Export and clear ---
+const exported = await (await fetch(`${BASE}/export?table=users`)).json();
+const usersNow = (await (await fetch(`${BASE}/fetch?table=users`)).json()).stats.num;
+check('JSON export has every row', exported.length === usersNow && exported.every(r => r._index && 'name' in r), `${exported.length}/${usersNow}`);
+const csvRes = await fetch(`${BASE}/export?table=users&format=csv`);
+const csvLines = (await csvRes.text()).trim().split('\n');
+check('CSV export: header + every row, as a download', csvLines[0] === '_index,name,age,score,bio' && csvLines.length === usersNow + 1
+    && /attachment; filename=users\.csv/.test(csvRes.headers.get('content-disposition')), csvLines[0]);
+await open('nosize');
+await clearToasts();
+await page.locator('button[title="Clear table"]').click();
+await page.getByRole('button', { name: 'Clear table' }).last().click();
+const cleared = await toast();
+await waitTable('nosize');
+check('clear table empties it', /rows deleted/.test(cleared) && (await (await fetch(`${BASE}/fetch?table=nosize`)).json()).stats.num === 0, cleared);
 
 // --- JSON cells ---
 await open('docs');

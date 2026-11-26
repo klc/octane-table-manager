@@ -4,6 +4,7 @@ namespace KLC\OctaneTableManager\Http\Controllers;
 
 use Illuminate\Foundation\Vite;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Config;
 use KLC\OctaneTableManager\Http\Requests\DeleteRequest;
@@ -225,6 +226,85 @@ class TableController extends Controller
         }
 
         return response()->json(['message' => 'Update is successful.']);
+    }
+
+    public function export(Request $request)
+    {
+        $name = $request->validate(['table' => 'required|string', 'format' => 'nullable|in:json,csv'])['table'];
+        $csv = $request->input('format') === 'csv';
+
+        if (in_array($name, $this->exceptTables)) {
+            return response()->json(['message' => 'Table is unavailable.'], 403);
+        }
+
+        try {
+            $table = Octane::table($name);
+        } catch (\Throwable $exception) {
+            return response()->json(['message' => $exception->getMessage()], 500);
+        }
+
+        // Octane sends a streamed response as it is written, so even a large table is never held whole in memory.
+        return response()->streamDownload(function () use ($table, $csv) {
+            // Rows go to a memory buffer that is sent in 64 KB pieces, not one small write per row.
+            $out = fopen('php://output', 'w');
+            $buffer = fopen('php://memory', 'w+');
+            $flush = function () use ($out, $buffer) {
+                rewind($buffer);
+                stream_copy_to_stream($buffer, $out);
+                ftruncate($buffer, 0);
+                rewind($buffer);
+            };
+            $first = true;
+
+            foreach ($table as $key => $row) {
+                if ($csv) {
+                    if ($first) {
+                        fputcsv($buffer, ['_index', ...array_keys($row)], escape: '');
+                    }
+                    fputcsv($buffer, [$key, ...array_values($row)], escape: '');
+                } else {
+                    fwrite($buffer, ($first ? '[' : ',').json_encode(['_index' => $key] + $row, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE));
+                }
+                $first = false;
+
+                if (ftell($buffer) > 65536) {
+                    $flush();
+                }
+            }
+
+            if (! $csv) {
+                fwrite($buffer, $first ? '[]' : ']');
+            }
+
+            $flush();
+        }, $name.($csv ? '.csv' : '.json'), ['Content-Type' => $csv ? 'text/csv' : 'application/json']);
+    }
+
+    public function truncate(Request $request): JsonResponse
+    {
+        $name = $request->validate(['table' => 'required|string'])['table'];
+
+        if (in_array($name, $this->exceptTables)) {
+            return response()->json(['message' => 'Table is unavailable.'], 403);
+        }
+
+        try {
+            $table = Octane::table($name);
+
+            // Collect first: deleting while the iterator walks the table can skip rows.
+            $keys = [];
+            foreach ($table as $key => $row) {
+                $keys[] = $key;
+            }
+
+            foreach ($keys as $key) {
+                $table->del($key);
+            }
+        } catch (\Throwable $exception) {
+            return response()->json(['message' => $exception->getMessage()], 500);
+        }
+
+        return response()->json(['message' => count($keys).' rows deleted.']);
     }
 
     public function delete(DeleteRequest $request): JsonResponse
