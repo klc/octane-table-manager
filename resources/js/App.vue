@@ -45,6 +45,7 @@ export default {
                         this.tableData['rows'] = [...this.tableData['rows'], ...response.data.rows.filter(row => !known.has(row._i))];
                     }
 
+                    this.tableData['hasMore'] = response.data.has_more;
                     this.tableData['stats'] = response.data.stats;
                     this.tableData['table'] = table;
 
@@ -227,7 +228,7 @@ export default {
                                 </template>
                             </Column>
                         </DataTable>
-                        <div class="mt-4">
+                        <div class="mt-4" v-if="tableData.hasMore">
                             <Button @click="fetchTableData(tableData['table'], 1)" :loading="moreLoader" :fluid="true" label="Load More" variant="outlined" />
                         </div>
                     </Panel>

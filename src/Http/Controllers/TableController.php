@@ -82,6 +82,7 @@ class TableController extends Controller
         $tableData['stats'] = $table->stats();
         $tableData['stats']['memory'] = number_format(($table->memorySize / 1024), 2, '.', '').' KB';
         $tableData['rows'] = [];
+        $tableData['has_more'] = false;
 
         if ($request->input('index')) {
             $data = $table->get($request->get('index'));
@@ -107,6 +108,7 @@ class TableController extends Controller
                 $tableData['rows'][] = $row;
 
                 if (count($tableData['rows']) === 50) {
+                    $tableData['has_more'] = true;
                     break;
                 }
             }
