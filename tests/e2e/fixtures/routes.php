@@ -21,6 +21,9 @@ Route::get('/otm-e2e/seed', function () {
         $users->set("u$i", ['name' => "user $i", 'age' => $i, 'score' => $i + 0.125, 'bio' => str_repeat('b', 10)]);
     }
 
+    // Octane's own cache table, shown read-only as octane:cache.
+    Illuminate\Support\Facades\Cache::store('octane')->put('e2e-key', 'hello', 600);
+
     // Digits JSON.parse would change (2^64, 1.50) and brackets inside a string.
     Octane::table('docs')->set('d1', ['data' => '{"id":12345678901234567890,"price":1.50,"name":"old","note":"a {b} [c]","tags":[]}']);
 

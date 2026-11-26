@@ -14,6 +14,8 @@
 
 - Sidebar badges turn yellow / red as a table runs out of conflict slots. A Swoole table holds about 1.7x its
   configured size; inserts fail (Laravel raises an ErrorException) when a new key collides and no slot is left.
+- Octane's own cache table (`Cache::store('octane')`) is listed as `octane:cache`, read-only, with the values as
+  Octane stored them (serialized, never unserialized by the manager).
 - Download a table as JSON or CSV (streamed; 100k rows / 16 MB in about 0.3 s without growing the worker's
   memory), and clear a table after a confirmation.
 - JSON cells: a button shows the value indented, and the editor opens it indented and saves it compact.

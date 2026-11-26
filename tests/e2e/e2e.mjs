@@ -166,6 +166,15 @@ check('index "0" can be found', (await api('post', '/store', { table: 'nosize', 
 const csrf = (await fetch(BASE + '/store', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: '{}' })).status;
 check('foreign POST without XSRF token -> 419', csrf === 419, String(csrf));
 
+// --- Octane's cache table ---
+await open('octane:cache');
+const cacheRow = await page.evaluate(() => document.querySelector('#app')._vnode.component.proxy.tableData.rows.find(r => r._i === 'e2e-key'));
+check('octane:cache lists the raw serialized value', cacheRow?.value === 's:5:"hello";', JSON.stringify(cacheRow));
+check('octane:cache has no edit controls', await page.locator('button:has(.pi-plus), button:has(.pi-trash), button[title="Clear table"]').count() === 0
+    && await page.getByText('Read-only').count() === 1);
+check('octane:cache refuses writes', (await api('patch', '/update', { table: 'octane:cache', index: 'e2e-key', field: 'value', value: 'x' }))[0] === 403
+    && (await api('delete', '/truncate?table=octane:cache'))[0] === 403);
+
 // --- Export and clear ---
 const exported = await (await fetch(`${BASE}/export?table=users`)).json();
 const usersNow = (await (await fetch(`${BASE}/fetch?table=users`)).json()).stats.num;

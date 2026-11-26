@@ -16,6 +16,9 @@ use Laravel\Octane\Facades\Octane;
 
 class TableController extends Controller
 {
+    // Octane's own cache table (Cache::store('octane')). Config table names cannot contain ':', so no clash.
+    public const CACHE_TABLE = 'octane:cache';
+
     // Built assets are served from the package itself, so a composer update is all an upgrade needs.
     private const DIST = __DIR__.'/../../../public/vendor/octane-table-manager';
 
@@ -116,6 +119,26 @@ class TableController extends Controller
             $tables[] = $table;
         }
 
+        $cache = app()->bound('octane.cacheTable') ? app('octane.cacheTable') : null;
+
+        if ($cache && ! in_array(self::CACHE_TABLE, $this->exceptTables)) {
+            $stats = $cache->stats();
+            $bytes = (int) Config::get('octane.cache.bytes', 10000);
+
+            // Values are serialized by Octane; they are shown as stored and never unserialized here.
+            $tables[] = [
+                'name' => self::CACHE_TABLE,
+                'limit' => Config::get('octane.cache.rows', 1000),
+                'count' => $stats['num'],
+                'usage' => self::usage($stats),
+                'read_only' => true,
+                'columns' => [
+                    ['name' => 'value', 'type' => 'string', 'length' => $bytes, 'definition' => "string:$bytes"],
+                    ['name' => 'expiration', 'type' => 'int', 'length' => 8, 'definition' => 'int'],
+                ],
+            ];
+        }
+
         return response()->json($tables);
     }
 
@@ -126,7 +149,7 @@ class TableController extends Controller
         }
 
         try {
-            $table = Octane::table($request->get('table'));
+            $table = $this->table($request->get('table'));
         } catch (\Throwable $exception) {
             return response()->json(['message' => $exception->getMessage()], 500);
         }
@@ -199,7 +222,7 @@ class TableController extends Controller
         }
 
         try {
-            $table = Octane::table($request->get('table'));
+            $table = $this->table($request->get('table'));
 
             $data = $table->get($request->get('index'));
 
@@ -238,7 +261,7 @@ class TableController extends Controller
         }
 
         try {
-            $table = Octane::table($name);
+            $table = $this->table($name);
         } catch (\Throwable $exception) {
             return response()->json(['message' => $exception->getMessage()], 500);
         }
@@ -289,7 +312,7 @@ class TableController extends Controller
         }
 
         try {
-            $table = Octane::table($name);
+            $table = $this->table($name);
 
             // Collect first: deleting while the iterator walks the table can skip rows.
             $keys = [];
@@ -314,7 +337,7 @@ class TableController extends Controller
         }
 
         try {
-            $table = Octane::table($request->get('table'));
+            $table = $this->table($request->get('table'));
 
             $status = $table->del($request->get('index'));
 
@@ -336,7 +359,7 @@ class TableController extends Controller
         }
 
         try {
-            $table = Octane::table($request->get('table'));
+            $table = $this->table($request->get('table'));
 
             if ($table->exists($request->input('index'))) {
                 return response()->json(['message' => 'An item with this index already exists.'], 409);
@@ -371,5 +394,12 @@ class TableController extends Controller
     private static function matches(int|float|string $cell, ?string $value): bool
     {
         return is_string($cell) ? mb_stripos($cell, (string) $value) !== false : is_numeric($value) && $cell == $value;
+    }
+
+    private function table(string $name)
+    {
+        return $name === self::CACHE_TABLE && app()->bound('octane.cacheTable') && app('octane.cacheTable')
+            ? app('octane.cacheTable')
+            : Octane::table($name);
     }
 }

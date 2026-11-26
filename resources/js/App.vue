@@ -32,6 +32,10 @@ export default {
         }
     },
     computed: {
+        // Read-only everywhere, or just this table (Octane's cache table).
+        tableReadOnly() {
+            return this.readOnly || !!this.tableData?.table?.read_only;
+        },
         visibleTables() {
             const query = this.tableFilter.toLowerCase();
             const tables = this.tables.filter(table => table.name.toLowerCase().includes(query));
@@ -290,7 +294,7 @@ export default {
                             <div class="ms-auto me-4 flex items-center gap-2">
                                 <Button as="a" :href="exportUrl('json')" text size="small" icon="pi pi-download" label="JSON" title="Download every row as JSON" />
                                 <Button as="a" :href="exportUrl('csv')" text size="small" icon="pi pi-download" label="CSV" title="Download every row as CSV" />
-                                <Tag v-if="readOnly" severity="secondary" value="Read-only" />
+                                <Tag v-if="tableReadOnly" severity="secondary" value="Read-only" />
                                 <template v-else>
                                     <Button text size="small" severity="danger" icon="pi pi-eraser" title="Clear table" @click="truncateConfirm" />
                                     <Button outlined icon="pi pi-plus" @click="openNewItemModal" />
@@ -302,7 +306,7 @@ export default {
                                    tableStyle="min-width: 50rem"
                                    scrollable
                                    scroll-height="calc(100dvh - 20rem)"
-                                   :editMode="readOnly ? undefined : 'cell'"
+                                   :editMode="tableReadOnly ? undefined : 'cell'"
                                    @cell-edit-complete="editTableCell">
                             <Column field="_i" header="Index" />
                             <Column v-for="column in tableData.table.columns"
@@ -332,7 +336,7 @@ export default {
                                     </template>
                                 </template>
                             </Column>
-                            <Column v-if="!readOnly">
+                            <Column v-if="!tableReadOnly">
                                 <template #body="{ data }">
                                     <Button @click="deleteConfirm(data)" outlined icon="pi pi-trash"/>
                                 </template>
