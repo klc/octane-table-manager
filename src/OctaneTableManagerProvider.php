@@ -2,6 +2,8 @@
 
 namespace KLC\OctaneTableManager;
 
+use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
+use Illuminate\Foundation\Http\Middleware\TrimStrings;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -27,6 +29,14 @@ class OctaneTableManagerProvider extends ServiceProvider
         ], function () {
             $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
         });
+
+        // Keys and cells are exact bytes ("u1 " is not "u1"): keep the app's string-changing middleware off our requests.
+        // Global middleware runs before routing, so match the path. An empty prefix shares the app's paths; leave those alone.
+        $prefix = trim($routePrefix, '/');
+        $domain = Config::get('octane-table-manager.domain');
+        $ours = fn ($request) => $prefix !== '' && $request->is($prefix, $prefix.'/*') && (! $domain || $request->getHost() === $domain);
+        TrimStrings::skipWhen($ours);
+        ConvertEmptyStringsToNull::skipWhen($ours);
 
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'otm');
 

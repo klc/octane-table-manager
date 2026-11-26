@@ -28,6 +28,10 @@ Route::get('/otm-e2e/seed', function () {
     // Digits JSON.parse would change (2^64, 1.50) and brackets inside a string.
     Octane::table('docs')->set('d1', ['data' => '{"id":12345678901234567890,"price":1.50,"name":"old","note":"a {b} [c]","tags":[]}']);
 
+    // Two keys that differ only by a trailing space.
+    Octane::table('ints')->set('w', ['i1' => 1]);
+    Octane::table('ints')->set('w ', ['i1' => 2]);
+
     return $users->count();
 });
 

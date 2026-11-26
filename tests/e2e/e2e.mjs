@@ -170,6 +170,15 @@ const exactBracket = (await api('get', '/fetch?table=nosize&index=' + encodeURIC
 const patternK = (await api('get', '/fetch?table=nosize&index=' + encodeURIComponent('k*')))[1]?.rows?.map(r => r._i).sort();
 check('a key containing [ ] is found as itself, k* is still a pattern', JSON.stringify(exactBracket) === '["k[1]"]' && JSON.stringify(patternK) === '["k1","k[1]"]',
     JSON.stringify([exactBracket, patternK]));
+// Keys and cells are exact bytes: the app's TrimStrings must not turn "w " into "w" or trim a value.
+const delSpace = await api('delete', '/delete?table=ints&index=' + encodeURIComponent('w '));
+const intsKeys = (await api('get', '/fetch?table=ints'))[1]?.rows?.map(r => r._i);
+await api('post', '/store', { table: 'docs', index: 'ws', data: { data: 'x' } });
+await api('patch', '/update', { table: 'docs', index: 'ws', field: 'data', value: ' padded\n' });
+const wsData = (await api('get', '/fetch?table=docs&index=ws'))[1]?.rows?.[0]?.data;
+await api('delete', '/delete?table=docs&index=ws');
+check('deleting "w " leaves "w"; a value keeps its whitespace', delSpace[0] === 200 && JSON.stringify(intsKeys) === '["w"]' && wsData === ' padded\n',
+    JSON.stringify([delSpace, intsKeys, wsData]));
 const csrf = (await fetch(BASE + '/store', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: '{}' })).status;
 check('foreign POST without XSRF token -> 419', csrf === 419, String(csrf));
 
