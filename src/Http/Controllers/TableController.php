@@ -23,7 +23,8 @@ class TableController extends Controller
     public function index()
     {
         $routePrefix = Config::get('octane-table-manager.route_prefix', 'octane-table-manager');
-        $baseUrl = url($routePrefix);
+        // Relative, so a TLS-terminating proxy cannot turn it into http:// (mixed content).
+        $baseUrl = request()->getBaseUrl().'/'.trim($routePrefix, '/');
 
         return view('otm::index', compact('baseUrl'));
     }
