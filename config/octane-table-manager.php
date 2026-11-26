@@ -9,4 +9,6 @@ return [
     // viewOctaneTableManager gate (see README).
     'middleware' => ['web'],
     'except_tables' => [],
+    // Look but do not touch: every request that would change a table answers 403.
+    'read_only' => (bool) env('OTM_READ_ONLY', false),
 ];

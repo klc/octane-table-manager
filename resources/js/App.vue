@@ -11,6 +11,7 @@ export default {
     components: {ConfirmDialog, Dialog, InputText, InputNumber, Toast},
     data() {
         return {
+            readOnly: readOnly, // set by the page from config('octane-table-manager.read_only')
             tables: [],
             tableData: null,
             tableLoader: false,
@@ -237,14 +238,15 @@ export default {
                             <InputText v-model="filterValue" size="small" :disabled="!filterColumn" placeholder="Value"
                                        title="Text columns: contains (any case). Numbers: equals." @keyup.enter="fetchTableData(tableData.table)" />
                             <Button outlined icon="pi pi-search" @click="fetchTableData(tableData.table)"/>
-                            <Button class="ms-auto me-4" outlined icon="pi pi-plus" @click="openNewItemModal" />
+                            <Tag v-if="readOnly" class="ms-auto me-4" severity="secondary" value="Read-only" />
+                            <Button v-else class="ms-auto me-4" outlined icon="pi pi-plus" @click="openNewItemModal" />
                         </div>
                         <DataTable :value="tableData.rows"
                                    dataKey="_i"
                                    tableStyle="min-width: 50rem"
                                    scrollable
                                    scroll-height="calc(100dvh - 20rem)"
-                                   editMode="cell"
+                                   :editMode="readOnly ? undefined : 'cell'"
                                    @cell-edit-complete="editTableCell">
                             <Column field="_i" header="Index" />
                             <Column v-for="column in tableData.table.columns"
@@ -267,7 +269,7 @@ export default {
                                     </template>
                                 </template>
                             </Column>
-                            <Column>
+                            <Column v-if="!readOnly">
                                 <template #body="{ data }">
                                     <Button @click="deleteConfirm(data)" outlined icon="pi pi-trash"/>
                                 </template>

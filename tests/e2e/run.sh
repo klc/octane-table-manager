@@ -40,7 +40,7 @@ fi
 
 start() {
     docker rm -f $NAME >/dev/null 2>&1 || true
-    docker run -d --name $NAME -e APP_ENV="$1" -p $PORT:8000 -v "$APP:/app" -v "$ROOT:/package" -w /app $IMAGE \
+    docker run -d --name $NAME -e APP_ENV="$1" -e OTM_READ_ONLY="${2:-false}" -p $PORT:8000 -v "$APP:/app" -v "$ROOT:/package" -w /app $IMAGE \
         php artisan octane:start --server=swoole --host=0.0.0.0 --port=8000 --workers=4 >/dev/null
     for _ in $(seq 1 60); do
         [ "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/otm-e2e/ping")" = 200 ] && return 0
@@ -56,6 +56,10 @@ echo "== Laravel $VERSION: $(in_app 'php artisan --version')"
 start local
 curl -sf "http://localhost:$PORT/otm-e2e/seed" >/dev/null
 OTM_E2E_URL="http://localhost:$PORT" node "$E2E/e2e.mjs"
+
+start local true
+curl -sf "http://localhost:$PORT/otm-e2e/seed" >/dev/null
+OTM_E2E_URL="http://localhost:$PORT" node "$E2E/e2e.mjs" read-only
 
 # Outside the local environment the manager is closed unless the viewOctaneTableManager gate allows it.
 start production

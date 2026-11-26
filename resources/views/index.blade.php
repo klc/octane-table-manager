@@ -16,6 +16,7 @@
 
 <script>
     const baseUrl = "{{ $baseUrl }}";
+    const readOnly = @json((bool) config('octane-table-manager.read_only'));
 </script>
 </body>
 </html>

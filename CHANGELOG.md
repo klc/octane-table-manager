@@ -14,6 +14,7 @@
 
 - Sidebar badges turn yellow / red as a table runs out of conflict slots. A Swoole table holds about 1.7x its
   configured size; inserts fail (Laravel raises an ErrorException) when a new key collides and no slot is left.
+- Read-only mode (`OTM_READ_ONLY=true`): edit controls are hidden and every write answers 403.
 - Index search takes patterns (`user_*`, `?`), and rows can be filtered by a column: text contains (any case),
   numbers equal. Load More pages through the matches.
 - A filter box and a sort-by-usage toggle for the table list.

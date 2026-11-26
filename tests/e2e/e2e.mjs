@@ -9,6 +9,26 @@ const check = (name, ok, extra = '') => {
     console.log(`${ok ? 'OK  ' : 'FAIL'} ${name}${extra ? ' ' + extra : ''}`);
 };
 
+// --- Read-only mode (run.sh starts the app with OTM_READ_ONLY=true and passes "read-only") ---
+if (process.argv[2] === 'read-only') {
+    const browser = await chromium.launch({ channel: process.env.PW_CHANNEL, headless: true });
+    const page = await browser.newPage();
+    await page.goto(BASE);
+    await page.locator('.p-panelmenu a', { hasText: 'users' }).first().click();
+    await page.locator('tbody tr').first().waitFor();
+    const call = (m, u, d) => page.evaluate(async ([m, u, d]) => { try { return (await window.axios({ method: m, url: baseUrl + u, data: d })).status; } catch (e) { return e.response?.status; } }, [m, u, d]);
+    check('read-only: reading works', await call('get', '/fetch?table=users') === 200);
+    check('read-only: update -> 403', await call('patch', '/update', { table: 'users', index: 'u1', field: 'name', value: 'x' }) === 403);
+    check('read-only: store -> 403', await call('post', '/store', { table: 'users', index: 'ro', data: { name: 'x' } }) === 403);
+    check('read-only: delete -> 403', await call('delete', '/delete?table=users&index=u1') === 403);
+    check('read-only: no add or delete buttons', await page.locator('button:has(.pi-plus), button:has(.pi-trash)').count() === 0);
+    await page.locator('tbody tr').first().locator('td').nth(1).click();
+    check('read-only: cells do not open an editor', await page.locator('tbody input, tbody textarea').count() === 0);
+    check('read-only: label shown', await page.getByText('Read-only').count() === 1);
+    await browser.close();
+    process.exit(failed ? 1 : 0);
+}
+
 // --- API: pagination must not depend on which worker answers (4 workers, parallel requests) ---
 const page_ = async offset => (await (await fetch(`${BASE}/fetch?table=users&offset=${offset}`, { headers: { Connection: 'close' } })).json()).rows.map(r => r._i);
 const pages = await Promise.all([0, 50, 100, 150, 200, 250].map(page_));

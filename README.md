@@ -40,6 +40,9 @@ A gate whose closure takes a non-nullable `$user` denies guests, so add `auth` t
 Routes use the `web` middleware group by default (session, CSRF). If you published the config while it still had
 `'middleware' => []`, change it to `['web']`, or the gate never sees the logged-in user.
 
+Set `OTM_READ_ONLY=true` to browse without being able to change anything: the UI hides the edit controls and the
+server answers 403 to every request that would write.
+
 If there are any tables you don't want to be listed, you should add their names to the `except_tables` array in the config file.
 
 ![otmindex.png](screenshots/otm-index.png?t=1749120687517)
