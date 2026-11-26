@@ -45,7 +45,7 @@ export default {
                     this.tables.find(t => t.name === table.name).count = response.data.stats.num;
                 })
                 .catch((error) => {
-                    this.$toast.add({ severity: 'error', summary: error.response.data.message, life: 3000 });
+                    this.showError(error);
                 })
                 .finally(() => {
                     this.tableLoader = false;
@@ -60,7 +60,7 @@ export default {
                     this.tableData.rows.find(row => row._i === data._i)[field] = newValue;
                 })
                 .catch((error) => {
-                    this.$toast.add({ severity: 'error', summary: error.response.data.message, life: 3000 });
+                    this.showError(error);
                 })
         },
         deleteConfirm: function (data) {
@@ -85,7 +85,7 @@ export default {
                             this.fetchTableData(this.tableData.table);
                         })
                         .catch((error) => {
-                            this.$toast.add({ severity: 'error', summary: error.response.data.message, life: 3000 });
+                            this.showError(error);
                         })
                 },
                 reject: () => {
@@ -102,12 +102,15 @@ export default {
                     this.$toast.add({ severity: 'success', summary: response.data.message, life: 3000 });
                 })
                 .catch((error) => {
-                    this.$toast.add({ severity: 'error', summary: error.response.data.message, life: 3000 });
+                    this.showError(error);
                 })
                 .finally(() => {
                     this.newItem.modalVisible = false;
                     this.fetchTableData(this.tableData.table);
                 });
+        },
+        showError(error) {
+            this.$toast.add({ severity: 'error', summary: error.response?.data?.message ?? error.message, life: 3000 });
         },
         columnName(column) {
             return column.name + " [" + column.type + ":" + column.length + "]";
