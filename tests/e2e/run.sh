@@ -17,6 +17,8 @@ NAME=otm-e2e-$VERSION
 IMAGE=otm-e2e-swoole
 
 docker build -q -t $IMAGE "$E2E" >/dev/null
+# Octane also runs on the OpenSwoole extension (its tables have no stats()).
+docker build -q -t otm-e2e-openswoole --build-arg BASE=openswoole/swoole:25.2-php8.3 "$E2E" >/dev/null
 
 in_app() {
     docker run --rm -v "$APP:/app" -v "$ROOT:/package" -w /app $IMAGE sh -c "$1"
@@ -40,7 +42,7 @@ fi
 
 start() {
     docker rm -f $NAME >/dev/null 2>&1 || true
-    docker run -d --name $NAME -e APP_ENV="$1" -e OTM_READ_ONLY="${2:-false}" ${3:-} -p $PORT:8000 -v "$APP:/app" -v "$ROOT:/package" -w /app $IMAGE \
+    docker run -d --name $NAME -e APP_ENV="$1" -e OTM_READ_ONLY="${2:-false}" ${3:-} -p $PORT:8000 -v "$APP:/app" -v "$ROOT:/package" -w /app ${4:-$IMAGE} \
         php artisan octane:start --server=swoole --host=0.0.0.0 --port=8000 --workers=4 >/dev/null
     for _ in $(seq 1 60); do
         [ "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/otm-e2e/ping")" = 200 ] && return 0
@@ -78,6 +80,16 @@ fail=0
 [ -n "$js" ] && [ "$status" = 200 ] && echo "OK   domain pattern -> $js $status" || { echo "FAIL domain pattern -> script src '$js' ($status)"; fail=1; }
 row=$(curl -s -H "$host" "http://localhost:$PORT/octane-table-manager/fetch?table=ints&index=w%20")
 case $row in *'"_i":"w "'*) echo "OK   domain pattern keeps 'w '" ;; *) echo "FAIL domain pattern trimmed 'w ' -> $row"; fail=1 ;; esac
+[ $fail = 0 ] || exit 1
+
+# The same app on OpenSwoole: the list and a table must open without Swoole's stats().
+start local false "" otm-e2e-openswoole
+curl -sf "http://localhost:$PORT/otm-e2e/seed" >/dev/null
+list=$(curl -s -H 'Accept: application/json' -w ' %{http_code}' "http://localhost:$PORT/octane-table-manager/list")
+fetch=$(curl -s -H 'Accept: application/json' -w ' %{http_code}' "http://localhost:$PORT/octane-table-manager/fetch?table=users")
+fail=0
+case $list in *'"name":"users"'*'"count":230'*' 200') echo "OK   openswoole list" ;; *) echo "FAIL openswoole list -> $(echo "$list" | head -c 300)"; fail=1 ;; esac
+case $fetch in *'"num":230'*'"_i":"u'*' 200') echo "OK   openswoole fetch" ;; *) echo "FAIL openswoole fetch -> $(echo "$fetch" | head -c 300)"; fail=1 ;; esac
 [ $fail = 0 ] || exit 1
 
 # Outside the local environment the manager is closed unless the viewOctaneTableManager gate allows it.

@@ -91,7 +91,7 @@ class TableController extends Controller
             }
 
             try {
-                $stats = Octane::table($tableName)->stats();
+                $stats = self::stats(Octane::table($tableName));
             } catch (\Throwable $exception) {
                 // e.g. not running on Swoole: "Tables may only be accessed when using the Swoole server."
                 return response()->json(['message' => $exception->getMessage()], 500);
@@ -124,7 +124,7 @@ class TableController extends Controller
         $cache = app()->bound('octane.cacheTable') ? app('octane.cacheTable') : null;
 
         if ($cache && ! in_array(self::CACHE_TABLE, $this->exceptTables)) {
-            $stats = $cache->stats();
+            $stats = self::stats($cache);
             $bytes = (int) Config::get('octane.cache.bytes', 10000);
 
             // Values are serialized by Octane; they are shown as stored and never unserialized here.
@@ -157,7 +157,7 @@ class TableController extends Controller
         }
 
         $tableData = [];
-        $tableData['stats'] = $table->stats();
+        $tableData['stats'] = self::stats($table);
         $tableData['stats']['memory'] = number_format(($table->memorySize / 1024), 2, '.', '').' KB';
         $tableData['rows'] = [];
         $tableData['has_more'] = false;
@@ -400,7 +400,14 @@ class TableController extends Controller
      */
     private static function usage(array $stats): float
     {
-        return $stats['total_slice_num'] > 0 ? round(1 - $stats['available_slice_num'] / $stats['total_slice_num'], 2) : 0;
+        return ($stats['total_slice_num'] ?? 0) > 0 ? round(1 - $stats['available_slice_num'] / $stats['total_slice_num'], 2) : 0;
+    }
+
+    // OpenSwoole's Table has no stats(); the row count is all it tells.
+    private static function stats(object $table): array
+    {
+        // ponytail: no slot statistics on OpenSwoole, so its usage figure and capacity warning stay at 0.
+        return method_exists($table, 'stats') ? $table->stats() : ['num' => $table->count()];
     }
 
     // Strings: case-insensitive "contains". Numbers: equal.
