@@ -150,12 +150,13 @@ export default {
     <div class="card flex">
 
         <!-------------------------- Sidebar ------------------------>
-        <div class="card flex-1/6 py-4 px-2">
+        <div class="card w-72 shrink-0 py-4 px-2">
             <PanelMenu :model="tables" class="w-full">
                 <template #item="{ item }">
-                    <a @click="searchKey = null; fetchTableData(item)" v-ripple class="flex items-center px-4 py-2 cursor-pointer group">
-                        <span :class="['ml-2']">{{ item.name }}</span>
-                        <Badge v-if="item.limit" class="ml-auto" :value="item.count + '/' + item.limit" />
+                    <a @click="searchKey = null; fetchTableData(item)" v-ripple class="flex items-center gap-2 px-4 py-2 cursor-pointer group">
+                        <!-- A long name gets an ellipsis (full name on hover) instead of running into the badge. -->
+                        <span class="ml-2 truncate" :title="item.name">{{ item.name }}</span>
+                        <Badge v-if="item.limit" class="ml-auto shrink-0" :value="item.count + '/' + item.limit" />
                     </a>
                 </template>
             </PanelMenu>
@@ -163,7 +164,7 @@ export default {
         <!-------------------------- Sidebar ------------------------>
 
         <!-- min-w-0: let this column shrink instead of growing to the table's width and pushing the page sideways. -->
-        <div class="flex-5/6 min-w-0 py-4 px-2">
+        <div class="flex-1 min-w-0 py-4 px-2">
             <div v-if="tableData !== null || tableLoader">
                 <div class="text-center h-dvh" v-if="tableLoader">
                     <i class="pi pi-spin pi-spinner absolute top-50" style="font-size: 8rem"></i>
