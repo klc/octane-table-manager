@@ -19,6 +19,7 @@ export default {
             tableLoader: false,
             moreLoader: false,
             fetchSeq: 0,
+            saving: null,
             searchKey: null,
             filterColumn: null,
             filterValue: '',
@@ -49,9 +50,20 @@ export default {
         }
     },
     methods: {
-        fetchTableData: function (table, loadMore = 0) {
+        fetchTableData: async function (table, loadMore = 0) {
             // Load More keeps the table on screen; only a fresh load shows the full-page spinner.
             this[loadMore ? 'moreLoader' : 'tableLoader'] = true;
+
+            // Only the latest request may touch the view: an older answer (another table, an older search) is dropped.
+            const seq = ++this.fetchSeq;
+
+            // A cell edit closed by this very click is saved first, so the offset counts it. PrimeVue closes the editor 1 ms after
+            // mousedown, which can come after this click handler: a later 1 ms timer runs after its one.
+            // ponytail: tied to PrimeVue's 1 ms; the e2e check "an edit closed by clicking Load More" fails if that changes.
+            if (loadMore) {
+                await new Promise(resolve => setTimeout(resolve, 1));
+                await this.saving;
+            }
 
             // Load More continues the query the view was loaded with, not what the search boxes hold now.
             const query = loadMore ? this.tableData.query
@@ -59,9 +71,6 @@ export default {
 
             // The server counts the offset over rows matching now, and an edit here can take a shown row out of the filter.
             const offset = loadMore ? this.shownMatches() + this.tableData.skip : 0;
-
-            // Only the latest request may touch the view: an older answer (another table, an older search) is dropped.
-            const seq = ++this.fetchSeq;
 
             axios.get(`${baseUrl}/fetch`, {params: {table: table.name, offset: offset, ...query}})
                 .then((response) => {
@@ -135,7 +144,7 @@ export default {
                 }
             }
 
-            axios.patch(`${baseUrl}/update`, {table: this.tableData.table.name, index: data._i, field: field, value: newValue})
+            this.saving = axios.patch(`${baseUrl}/update`, {table: this.tableData.table.name, index: data._i, field: field, value: newValue})
                 .then((response) => {
                     this.$toast.add({ severity: 'success', summary: response.data.message, life: 3000 });
                     this.tableData.rows.find(row => row._i === data._i)[field] = newValue;

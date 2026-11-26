@@ -341,6 +341,16 @@ const loadMore = async () => {
     await page.waitForFunction(() => !document.querySelector('#app')._vnode.component.proxy.moreLoader);
     return url.searchParams;
 };
+// Every key the server returns for name contains "user 1", paged through the API.
+const matchingKeys = async () => {
+    const keys = [];
+    for (let o = 0, more = true; more; o += 50) {
+        const p = await get(`column=name&value=${encodeURIComponent('user 1')}&offset=${o}`);
+        keys.push(...p.rows.map(r => r._i));
+        more = p.has_more;
+    }
+    return keys;
+};
 await open('users');
 await page.locator('.p-select').click();
 await page.getByRole('option', { name: 'name' }).click();
@@ -364,12 +374,7 @@ for (let i = 0; i < 5; i++) {
 for (let i = 0; i < 5 && (await vm()).hasMore; i++) {
     await loadMore();
 }
-const stillMatching = [];
-for (let o = 0, more = true; more; o += 50) {
-    const p = await get(`column=name&value=${encodeURIComponent('user 1')}&offset=${o}`);
-    stillMatching.push(...p.rows.map(r => r._i));
-    more = p.has_more;
-}
+const stillMatching = await matchingKeys();
 let onScreen = new Set(await shownKeys());
 const missing = stillMatching.filter(k => !onScreen.has(k));
 check('Load More after editing rows out of the filter skips no matching row', stillMatching.length === 106 && missing.length === 0 && !(await vm()).hasMore,
@@ -384,6 +389,28 @@ onScreen = await shownKeys();
 check('Load More sends the loaded query, not the unsubmitted search', !sentQuery.has('index') && sentQuery.get('column') === 'name' && sentQuery.get('value') === 'user 1'
     && onScreen.length > 50 && new Set(onScreen).size === onScreen.length && onScreen.every(k => stillMatching.includes(k)),
     JSON.stringify({ sent: Object.fromEntries(sentQuery), rows: onScreen.length }));
+
+// An edit completed by clicking Load More (the editor closes on mousedown) is saved before that page's offset is counted.
+await page.getByPlaceholder('Index Search').fill('');
+await page.getByPlaceholder('Value').press('Enter');
+await page.waitForFunction(() => document.querySelector('#app')._vnode.component.proxy.tableData.rows.length === 50);
+await cell(5, 1).click();
+await editor().fill('done 5');
+const moreUrl = u => u.pathname.endsWith('/fetch') && u.searchParams.get('offset') !== '0';
+const heldMore = new Promise(resolve => page.route(moreUrl, resolve));
+await clearToasts();
+await page.getByRole('button', { name: 'Load More' }).click();
+await toast();
+await (await heldMore).continue();
+await page.unroute(moreUrl);
+await page.waitForFunction(() => !document.querySelector('#app')._vnode.component.proxy.moreLoader);
+for (let i = 0; i < 5 && (await vm()).hasMore; i++) {
+    await loadMore();
+}
+const matchingNow = await matchingKeys();
+onScreen = new Set(await shownKeys());
+const lost = matchingNow.filter(k => !onScreen.has(k));
+check('an edit closed by clicking Load More shifts no matching row away', matchingNow.length === 105 && lost.length === 0, JSON.stringify({ matching: matchingNow.length, lost }));
 
 // A Load More that answers after another table was opened must not land in that table.
 await open('users');
