@@ -174,8 +174,8 @@ class TableController extends Controller
                     $tableData['rows'][] = $row;
                 }
             }
-        // An index without wildcards is a direct lookup; a pattern (user_*) or a column filter walks the table.
         } elseif ($index !== '' && strpbrk($index, '*?[') === false) {
+            // An index without wildcards is a direct lookup; a pattern (user_*) or a column filter walks the table.
             $data = $table->get($index);
 
             if (! $data) {
