@@ -24,7 +24,7 @@ export default {
     },
     methods: {
         fetchTableData: function (table, loadMore = 0) {
-            if (!loadMore && !this.search_key) {
+            if (!loadMore && !this.searchKey) {
                 this.tableData = [];
             }
 
