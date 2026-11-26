@@ -101,6 +101,17 @@ export default {
                 return;
             }
 
+            if (typeof value === 'number') {
+                // On Enter or leaving the cell the number editor sets the value it shows: cut to its digits, ints held within 2^53. Untouched is no edit.
+                // ponytail: typing exactly that shown value is not saved either, the editor cannot tell the two apart.
+                const {min = -Infinity, max = Infinity, maxFractionDigits} = this.numberProps(this.tableData.table.columns.find(c => c.name === field));
+                const shown = Number(new Intl.NumberFormat('en-US', {maximumFractionDigits: maxFractionDigits, useGrouping: false}).format(value));
+
+                if (newValue === Math.min(Math.max(shown, min), max)) {
+                    return;
+                }
+            }
+
             if (isJson(value)) {
                 // Save compact like the app stored it, and only if it is still JSON.
                 if (!isJson(newValue)) {

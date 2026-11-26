@@ -137,6 +137,28 @@ await page.getByPlaceholder('Index Search').fill('u7');
 await page.locator('button:has(.pi-search)').click();
 await page.waitForFunction(() => document.querySelector('#app')._vnode.component.proxy.tableData.rows.length === 1);
 check('search hides Load More', await page.getByRole('button', { name: 'Load More' }).count() === 0);
+// Opening a number cell and leaving it must not write back what the editor makes of the value (rounded to 15 digits, clamped to 2^53).
+const setup = [await api('patch', '/update', { table: 'users', index: 'u7', field: 'score', value: 2 / 3 }),
+    await api('patch', '/update', { table: 'users', index: 'u7', field: 'age', value: 2 ** 60 })];
+await page.locator('button:has(.pi-search)').click();
+await page.waitForFunction(() => { const r = document.querySelector('#app')._vnode.component.proxy.tableData.rows; return r.length === 1 && r[0].score === 2 / 3 && r[0].age === 2 ** 60; });
+const untouched = patches.length;
+const leave = async (col, how) => {
+    await cell(0, col).click();
+    await how();
+    await page.locator('tbody input').waitFor({ state: 'detached' });
+};
+await leave(3, () => editor().press('Enter'));
+await leave(3, () => page.getByPlaceholder('Index Search').click());
+await page.waitForTimeout(400);
+const floatSent = patches.slice(untouched);
+await leave(2, () => editor().press('Enter'));
+await leave(2, () => page.getByPlaceholder('Index Search').click());
+await page.waitForTimeout(400);
+const intSent = patches.slice(untouched + floatSent.length);
+const u7 = (await api('get', '/fetch?table=users&index=u7'))[1]?.rows?.[0];
+check('untouched float cell sends nothing', setup.every(r => r[0] === 200) && floatSent.length === 0 && u7?.score === 2 / 3, JSON.stringify([floatSent, u7?.score]));
+check('untouched big int cell sends nothing', intSent.length === 0 && u7?.age === 2 ** 60, JSON.stringify([intSent, u7?.age]));
 await open('ints');
 check('switching table clears the search', (await vm()).search === null);
 
