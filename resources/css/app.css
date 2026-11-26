@@ -1,4 +1,5 @@
-@import "tailwindcss";
+/* Scan only the UI sources, so the build does not change with tests, docs or other files in the repo. */
+@import "tailwindcss" source("..");
 @import "tailwindcss-primeui";
 @import "primeicons/primeicons.css";
 @custom-variant dark (&:where(.p-dark, .p-dark *));

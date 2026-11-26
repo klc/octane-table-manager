@@ -36,3 +36,17 @@ Routes use the `web` middleware group by default (session, CSRF). If you publish
 If there are any tables you don't want to be listed, you should add their names to the `except_tables` array in the config file.
 
 ![otmindex.png](screenshots/otm-index.png?t=1749120687517)
+
+## Development
+
+`npm run dev` serves the UI with hot reload while the package is linked into an app. Run `npm run build` before
+committing: the built files in `public/` are what installs use, and CI fails when they do not match the sources.
+
+End-to-end tests run against a real Octane + Swoole server in Docker, in a throwaway Laravel app per version:
+
+```sh
+npm ci
+PW_CHANNEL=chrome npm run e2e -- 13   # 10, 11, 12 or 13; PW_CHANNEL=chrome uses your installed Chrome
+```
+
+Without `PW_CHANNEL`, install a browser first with `npx playwright-core install chromium`.

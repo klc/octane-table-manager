@@ -4,3 +4,4 @@
 composer.lock
 .DS_Store
 /public/vendor/octane-table-manager/octane-table-manager.hot
+/tests/e2e/.apps
