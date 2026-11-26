@@ -157,7 +157,7 @@ export default {
                 <template #item="{ item }">
                     <a @click="searchKey = null; fetchTableData(item)" v-ripple class="flex items-center px-4 py-2 cursor-pointer group">
                         <span :class="['ml-2']">{{ item.name }}</span>
-                        <Badge v-if="item.limit" class="ml-auto" :value="item.limit + '/' + item.count" />
+                        <Badge v-if="item.limit" class="ml-auto" :value="item.count + '/' + item.limit" />
                     </a>
                 </template>
             </PanelMenu>
