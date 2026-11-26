@@ -194,6 +194,13 @@ const fitsRes = [await api('post', '/store', { table: 'docs', index: fits, data:
 check('multibyte index over 63 bytes -> 422 everywhere, 62 bytes still stored', wideRes.every(r => r[0] === 422) && fitsRes.every(r => r[0] === 200),
     JSON.stringify([wideRes.map(r => r[0]), fitsRes.map(r => r[0]), wideRes[0][1]]));
 check('value over the column size -> 422', (await api('patch', '/update', { table: 'users', index: 'u2', field: 'name', value: 'ş'.repeat(40) }))[0] === 422);
+// The exception quotes the first 20 bytes of the value; here byte 20 splits a ş, and the 422 must still encode.
+const cut = 'a' + 'ş'.repeat(39), cutIndex = 'cut-' + Date.now();
+const cutRes = [await api('patch', '/update', { table: 'users', index: 'u2', field: 'name', value: cut }),
+    await api('post', '/store', { table: 'users', index: cutIndex, data: { name: cut } }),
+    await api('get', '/fetch?table=users&index=' + cutIndex)];
+check('value over the column size cut mid-character -> 422, nothing stored',
+    cutRes.slice(0, 2).every(r => r[0] === 422 && /too large/.test(r[1])) && cutRes[2][0] === 404, JSON.stringify(cutRes));
 check('index "0" can be found', (await api('post', '/store', { table: 'nosize', index: '0', data: { v: 5 } }))[0] === 200
     && (await api('get', '/fetch?table=nosize&index=0'))[1]?.rows?.length === 1);
 // From outside the browser: no session, no token, no Sec-Fetch-Site (Laravel 13 lets same-origin browser requests through on that header).

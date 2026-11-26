@@ -254,7 +254,7 @@ class TableController extends Controller
             }
         } catch (ValueTooLargeForColumnException $exception) {
             // Octane checks string sizes in bytes; the browser counts characters, and ş, ğ, ü... take 2 bytes.
-            return response()->json(['message' => $exception->getMessage().' Column sizes are in bytes, and characters like ş take 2.'], 422);
+            return response()->json(['message' => $exception->getMessage().' Column sizes are in bytes, and characters like ş take 2.'], 422, [], JSON_INVALID_UTF8_SUBSTITUTE);
         } catch (\Throwable $exception) {
             return response()->json(['message' => $exception->getMessage()], 500);
         }
@@ -384,7 +384,7 @@ class TableController extends Controller
 
         } catch (ValueTooLargeForColumnException $exception) {
             // Octane checks string sizes in bytes; the browser counts characters, and ş, ğ, ü... take 2 bytes.
-            return response()->json(['message' => $exception->getMessage().' Column sizes are in bytes, and characters like ş take 2.'], 422);
+            return response()->json(['message' => $exception->getMessage().' Column sizes are in bytes, and characters like ş take 2.'], 422, [], JSON_INVALID_UTF8_SUBSTITUTE);
         } catch (\Throwable $exception) {
             return response()->json(['message' => $exception->getMessage()], 500);
         }
