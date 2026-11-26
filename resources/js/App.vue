@@ -16,6 +16,8 @@ export default {
             tableLoader: false,
             moreLoader: false,
             searchKey: null,
+            filterColumn: null,
+            filterValue: '',
             tableFilter: '',
             sortByUsage: false,
             newItem: {
@@ -40,7 +42,9 @@ export default {
 
             const offset = loadMore ? this.tableData.rows.length : 0;
 
-            axios.get(`${baseUrl}/fetch`, {params: {table: table.name, index: this.searchKey, offset: offset}})
+            const filter = this.filterColumn ? {column: this.filterColumn, value: this.filterValue} : {};
+
+            axios.get(`${baseUrl}/fetch`, {params: {table: table.name, index: this.searchKey, offset: offset, ...filter}})
                 .then((response) => {
                     if (!loadMore) {
                         // Replace tableData only on success, so a failed search keeps the last good view.
@@ -130,6 +134,12 @@ export default {
                     this.showError(error);
                 });
         },
+        openTable(table) {
+            this.searchKey = null;
+            this.filterColumn = null;
+            this.filterValue = '';
+            this.fetchTableData(table);
+        },
         usageSeverity(usage) {
             return usage >= 0.8 ? 'danger' : usage >= 0.5 ? 'warn' : undefined;
         },
@@ -172,7 +182,7 @@ export default {
             </div>
             <PanelMenu :model="visibleTables" class="w-full">
                 <template #item="{ item }">
-                    <a @click="searchKey = null; fetchTableData(item)" v-ripple class="flex items-center gap-2 px-4 py-2 cursor-pointer group">
+                    <a @click="openTable(item)" v-ripple class="flex items-center gap-2 px-4 py-2 cursor-pointer group">
                         <!-- A long name gets an ellipsis (full name on hover) instead of running into the badge. -->
                         <span class="ml-2 truncate" :title="item.name">{{ item.name }}</span>
                         <Badge v-if="item.limit" class="ml-auto shrink-0" :value="item.count + '/' + item.limit" :severity="usageSeverity(item.usage)"
@@ -219,10 +229,15 @@ export default {
 
                     <!----------------------------- Table --------------------------->
                     <Panel>
-                        <div>
-                            <InputText v-model="searchKey" type="text" size="small" placeholder="Index Search" />
-                            <Button class="ms-2" outlined icon="pi pi-search" @click="fetchTableData(this.tableData.table)"/>
-                            <Button class="float-end me-4" outlined icon="pi pi-plus" @click="openNewItemModal" />
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <InputText v-model="searchKey" size="small" placeholder="Index Search" title="An exact index, or a pattern with * and ? such as user_*"
+                                       @keyup.enter="fetchTableData(tableData.table)" />
+                            <Select v-model="filterColumn" :options="tableData.table.columns" option-label="name" option-value="name"
+                                    placeholder="Column" show-clear size="small" />
+                            <InputText v-model="filterValue" size="small" :disabled="!filterColumn" placeholder="Value"
+                                       title="Text columns: contains (any case). Numbers: equals." @keyup.enter="fetchTableData(tableData.table)" />
+                            <Button outlined icon="pi pi-search" @click="fetchTableData(tableData.table)"/>
+                            <Button class="ms-auto me-4" outlined icon="pi pi-plus" @click="openNewItemModal" />
                         </div>
                         <DataTable :value="tableData.rows"
                                    dataKey="_i"

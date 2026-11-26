@@ -17,6 +17,8 @@ class FetchRequest extends FormRequest
             'table' => 'required|string',
             'offset' => 'nullable|integer|min:0',
             'index' => 'nullable|string|max:63',
+            'column' => 'nullable|string',
+            'value' => 'nullable|string',
         ];
     }
 }

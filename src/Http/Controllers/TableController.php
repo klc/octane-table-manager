@@ -139,8 +139,12 @@ class TableController extends Controller
         // Each Octane server keeps its own tables; say which one answered.
         $tableData['server'] = gethostname();
 
-        if ($request->filled('index')) {
-            $data = $table->get($request->get('index'));
+        $index = (string) $request->input('index');
+        $column = $request->input('column');
+
+        // An index without wildcards is a direct lookup; a pattern (user_*) or a column filter walks the table.
+        if ($index !== '' && strpbrk($index, '*?[') === false) {
+            $data = $table->get($index);
 
             if (! $data) {
                 return response()->json(['message' => 'Item not found.'], 404);
@@ -151,10 +155,25 @@ class TableController extends Controller
             $tableData['rows'][] = $data;
         } else {
             // The iterator cursor is per worker process, so each request walks from the start.
-            // ponytail: O(offset) skip per page, fine for Octane-sized tables.
+            // The offset counts matching rows, so Load More pages through the filtered result.
+            // ponytail: O(table) walk per page, about 0.15 s for 100k rows; fine for Octane-sized tables.
             $skip = $request->integer('offset');
 
             foreach ($table as $key => $row) {
+                if ($index !== '' && ! fnmatch($index, $key)) {
+                    continue;
+                }
+
+                if ($column !== null) {
+                    if (! array_key_exists($column, $row)) {
+                        return response()->json(['message' => "Unknown column [$column]."], 422);
+                    }
+
+                    if (! self::matches($row[$column], $request->input('value'))) {
+                        continue;
+                    }
+                }
+
                 if ($skip-- > 0) {
                     continue;
                 }
@@ -266,5 +285,11 @@ class TableController extends Controller
     private static function usage(array $stats): float
     {
         return $stats['total_slice_num'] > 0 ? round(1 - $stats['available_slice_num'] / $stats['total_slice_num'], 2) : 0;
+    }
+
+    // Strings: case-insensitive "contains". Numbers: equal.
+    private static function matches(int|float|string $cell, ?string $value): bool
+    {
+        return is_string($cell) ? mb_stripos($cell, (string) $value) !== false : is_numeric($value) && $cell == $value;
     }
 }

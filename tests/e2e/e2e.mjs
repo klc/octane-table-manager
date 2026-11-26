@@ -144,6 +144,39 @@ check('index "0" can be found', (await api('post', '/store', { table: 'nosize', 
 const csrf = (await fetch(BASE + '/store', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: '{}' })).status;
 check('foreign POST without XSRF token -> 419', csrf === 419, String(csrf));
 
+// --- Pattern and column filters (on fresh data) ---
+await fetch(APP + '/otm-e2e/seed');
+const get = async qs => (await fetch(`${BASE}/fetch?table=users&${qs}`, { headers: { Accept: 'application/json' } })).json().then(d => d, () => null);
+const pat = await Promise.all([0, 50, 100].map(o => get(`index=${encodeURIComponent('u1*')}&offset=${o}`)));
+const patKeys = pat.flatMap(p => p.rows.map(r => r._i));
+check('pattern u1* pages through its 111 matches', JSON.stringify(pat.map(p => [p.rows.length, p.has_more])) === '[[50,true],[50,true],[11,false]]'
+    && new Set(patKeys).size === 111 && patKeys.every(k => k.startsWith('u1')), JSON.stringify(pat.map(p => p.rows.length)));
+check('text filter: contains, any case', (await get('column=name&value=USER%2022')).rows.length === 11);
+check('number filter: equals', JSON.stringify((await get('column=age&value=7')).rows.map(r => r._i)) === '["u7"]');
+check('unknown filter column -> 422', (await fetch(`${BASE}/fetch?table=users&column=nope&value=1`, { headers: { Accept: 'application/json' } })).status === 422);
+
+await open('ints');
+await open('users');
+await page.getByPlaceholder('Index Search').fill('u1*');
+await page.getByPlaceholder('Index Search').press('Enter');
+await page.waitForFunction(() => document.querySelector('#app')._vnode.component.proxy.tableData.rows.length === 50);
+for (let i = 0; i < 2; i++) {
+    const before = (await vm()).rows;
+    await page.getByRole('button', { name: 'Load More' }).click();
+    await page.waitForFunction(b => document.querySelector('#app')._vnode.component.proxy.tableData.rows.length > b, before);
+}
+s = await vm();
+check('UI pattern search + Load More', s.rows === 111 && s.uniq === 111 && !s.hasMore, JSON.stringify(s));
+await page.getByPlaceholder('Index Search').fill('');
+await page.locator('.p-select').click();
+await page.getByRole('option', { name: 'name' }).click();
+await page.getByPlaceholder('Value').fill('user 22');
+await page.getByPlaceholder('Value').press('Enter');
+await page.waitForFunction(() => document.querySelector('#app')._vnode.component.proxy.tableData.rows.length === 11);
+check('UI column filter', (await vm()).rows === 11);
+await open('ints');
+check('switching table clears the column filter', await page.evaluate(() => document.querySelector('#app')._vnode.component.proxy.filterColumn) === null);
+
 check('no page errors', errors.length === 0, errors.join(' | '));
 await browser.close();
 
