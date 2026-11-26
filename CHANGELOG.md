@@ -14,6 +14,7 @@
 
 - Sidebar badges turn yellow / red as a table runs out of conflict slots. A Swoole table holds about 1.7x its
   configured size; inserts fail (Laravel raises an ErrorException) when a new key collides and no slot is left.
+- A filter box and a sort-by-usage toggle for the table list.
 - The hostname of the server that answered is shown above the stats (each Octane server has its own tables).
 - `OTM_DOMAIN` for apps whose routes are bound to a domain and end in a catch-all route.
 - End-to-end tests on Laravel 10–13 with Octane and Swoole, and a CI workflow.

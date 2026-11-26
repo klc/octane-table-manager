@@ -16,11 +16,21 @@ export default {
             tableLoader: false,
             moreLoader: false,
             searchKey: null,
+            tableFilter: '',
+            sortByUsage: false,
             newItem: {
                 modalVisible: false,
                 index: '',
                 data: {}
             }
+        }
+    },
+    computed: {
+        visibleTables() {
+            const query = this.tableFilter.toLowerCase();
+            const tables = this.tables.filter(table => table.name.toLowerCase().includes(query));
+
+            return this.sortByUsage ? [...tables].sort((a, b) => b.usage - a.usage || a.name.localeCompare(b.name)) : tables;
         }
     },
     methods: {
@@ -155,7 +165,12 @@ export default {
 
         <!-------------------------- Sidebar ------------------------>
         <div class="card w-72 shrink-0 py-4 px-2">
-            <PanelMenu :model="tables" class="w-full">
+            <div class="flex gap-2 mb-2">
+                <InputText v-model="tableFilter" size="small" placeholder="Filter tables" class="flex-1 min-w-0" />
+                <Button :outlined="!sortByUsage" size="small" icon="pi pi-sort-amount-down" title="Sort by usage, fullest first"
+                        @click="sortByUsage = !sortByUsage" />
+            </div>
+            <PanelMenu :model="visibleTables" class="w-full">
                 <template #item="{ item }">
                     <a @click="searchKey = null; fetchTableData(item)" v-ripple class="flex items-center gap-2 px-4 py-2 cursor-pointer group">
                         <!-- A long name gets an ellipsis (full name on hover) instead of running into the badge. -->

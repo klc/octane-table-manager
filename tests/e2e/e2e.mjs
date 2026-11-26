@@ -48,6 +48,13 @@ await page.locator('.p-badge').first().waitFor();
 const badgeClass = name => page.locator('.p-panelmenu a', { hasText: name }).locator('.p-badge').getAttribute('class');
 check('full table gets a red badge', (await badgeClass('tiny')).includes('p-badge-danger'));
 check('roomy table has no warning', !/p-badge-(danger|warn)/.test(await badgeClass('users')));
+const sidebar = () => page.locator('.p-panelmenu a').allInnerTexts().then(t => t.map(x => x.split('\n')[0].trim()));
+await page.getByPlaceholder('Filter tables').fill('IN');
+check('table filter (case-insensitive)', JSON.stringify(await sidebar()) === '["tiny","ints"]', JSON.stringify(await sidebar()));
+await page.getByPlaceholder('Filter tables').fill('');
+await page.locator('button[title^="Sort by usage"]').click();
+check('sort by usage puts the fullest first', (await sidebar())[0] === 'tiny', JSON.stringify(await sidebar()));
+await page.locator('button[title^="Sort by usage"]').click();
 check('sidebar badge count/limit', (await page.locator('.p-panelmenu a', { hasText: 'users' }).locator('.p-badge').innerText()) === '230/2048');
 
 await open('users');
