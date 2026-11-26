@@ -232,9 +232,9 @@ check('live view stops when turned off', liveReqs.length === after);
 
 // --- Change log ---
 const secret = 'audit-' + Date.now();
-await api('patch', '/update', { table: 'users', index: 'u2', field: 'bio', value: secret });
+await api('patch', '/update', { table: 'users', index: firstKeys[0], field: 'bio', value: secret });
 const logLines = readFileSync(process.env.OTM_E2E_LOG, 'utf8').split('\n').filter(l => l.includes('Octane table changed'));
-check('changes are logged with table, index and field', /"action":"update","table":"users","index":"u2","field":"bio"/.test(logLines.at(-1) ?? ''), logLines.at(-1));
+check('changes are logged with table, index and field', (logLines.at(-1) ?? '').includes(`"action":"update","table":"users","index":${JSON.stringify(firstKeys[0])},"field":"bio"`), logLines.at(-1));
 check('logged changes leave the value out', logLines.every(l => !l.includes(secret)));
 
 // --- JSON cells ---
