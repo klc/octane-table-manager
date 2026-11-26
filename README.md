@@ -47,6 +47,7 @@ Every change is logged to the app's default log channel (`OTM_LOG_CHANNEL` picks
 index and field. Values are left out, since tables can hold tokens or personal data.
 
 If there are any tables you don't want to be listed, you should add their names to the `except_tables` array in the config file.
+Octane's own cache table is listed as `octane:cache` (read-only); add `octane:cache` to `except_tables` to hide it.
 
 ![otmindex.png](screenshots/otm-index.png?t=1749120687517)
 
