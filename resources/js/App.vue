@@ -122,11 +122,12 @@ export default {
         columnName(column) {
             return column.name + " [" + column.type + ":" + column.length + "]";
         },
-        intMaxVal(byte) {
-            return Math.ceil((255 ** byte) / 2);
-        },
-        intMinVal(byte) {
-            return 0 - Math.floor((255 ** byte) / 2);
+        numberProps(column) {
+            // Swoole stores every int column as int64 whatever size the config gives.
+            // ponytail: JS numbers hold integers exactly only up to 2^53, so larger values are out of reach.
+            return column.type === 'int'
+                ? {min: Number.MIN_SAFE_INTEGER, max: Number.MAX_SAFE_INTEGER, maxFractionDigits: 0, useGrouping: false}
+                : {maxFractionDigits: 15, useGrouping: false};
         }
     },
     mounted() {
@@ -220,7 +221,7 @@ export default {
                                         <Textarea v-model="data[field]" :maxlength="column.length" />
                                     </template>
                                     <template v-else>
-                                        <InputNumber v-model="data[field]" :max="intMaxVal(column.length)" :min="intMinVal(column.length)" />
+                                        <InputNumber v-model="data[field]" v-bind="numberProps(column)" />
                                     </template>
                                 </template>
                             </Column>
@@ -268,8 +269,7 @@ export default {
                              class="flex-auto w-full"
                              autocomplete="off"
                              v-model="newItem.data[column.name]"
-                             :max="intMaxVal(column.length)"
-                             :min="intMinVal(column.length)" />
+                             v-bind="numberProps(column)" />
             </div>
             <div class="flex justify-end gap-2">
                 <Button type="button" label="Cancel" severity="secondary" @click="newItem.modalVisible = false"></Button>
