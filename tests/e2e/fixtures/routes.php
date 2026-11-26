@@ -34,7 +34,7 @@ Route::get('/otm-e2e/fill/{name}', function (string $name) {
     for ($i = 0; ; $i++) {
         try {
             $table->set("fill$i", []);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return ['size' => $table->getSize(), 'failed_at' => $table->count(), 'error' => $e->getMessage(), 'samples' => $samples];
         }
         if ($i % max(1, intdiv($table->getSize(), 8)) === 0) {
