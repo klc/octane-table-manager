@@ -14,7 +14,6 @@ class OctaneTableManagerProvider extends ServiceProvider
         $middleware = Config::get('octane-table-manager.middleware', []);
 
         Route::group([
-            'namespace' => 'KLC\OctaneTableManager\Http\Controllers',
             'prefix' => $routePrefix,
             'middleware' => $middleware,
         ], function () {

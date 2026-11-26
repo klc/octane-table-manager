@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use KLC\OctaneTableManager\Http\Controllers\TableController;
 
 Route::controller(TableController::class)
     ->group(function () {
