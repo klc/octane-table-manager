@@ -11,7 +11,23 @@ Upgrading from 0.1.x: the old `public/vendor/octane-table-manager` folder is no 
 
 `yourdomain.com/octane-table-manager`
 
-If it will be used in a production environment, it is recommended to add authentication for security. This can be done by adding an authentication middleware in the config file.
+## Access
+
+The manager is open only when `APP_ENV=local`. Anywhere else it answers 403 unless the app defines the
+`viewOctaneTableManager` gate, for example in `AppServiceProvider::boot()`:
+
+```php
+use Illuminate\Support\Facades\Gate;
+
+Gate::define('viewOctaneTableManager', function ($user) {
+    return in_array($user->email, ['admin@example.com']);
+});
+```
+
+A gate whose closure takes a non-nullable `$user` denies guests, so add `auth` to `middleware` in the config to send them to the login page instead.
+
+Routes use the `web` middleware group by default (session, CSRF). If you published the config while it still had
+`'middleware' => []`, change it to `['web']`, or the gate never sees the logged-in user.
 
 If there are any tables you don't want to be listed, you should add their names to the `except_tables` array in the config file.
 

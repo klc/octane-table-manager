@@ -5,6 +5,7 @@ namespace KLC\OctaneTableManager;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use KLC\OctaneTableManager\Http\Middleware\Authorize;
 
 class OctaneTableManagerProvider extends ServiceProvider
 {
@@ -16,7 +17,7 @@ class OctaneTableManagerProvider extends ServiceProvider
     public function boot()
     {
         $routePrefix = Config::get('octane-table-manager.route_prefix', 'octane-table-manager');
-        $middleware = Config::get('octane-table-manager.middleware', []);
+        $middleware = [...Config::get('octane-table-manager.middleware', ['web']), Authorize::class];
 
         Route::group([
             'prefix' => $routePrefix,
