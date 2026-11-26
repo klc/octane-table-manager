@@ -67,6 +67,19 @@ js=$(curl -s "http://localhost:$PORT/" | sed -n 's/.*<script type="module" src="
 status=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT$js")
 case $js in /assets/*) [ "$status" = 200 ] ;; *) false ;; esac && echo "OK   empty prefix -> $js $status" || { echo "FAIL empty prefix -> script src '$js' ($status)"; exit 1; }
 
+# A domain pattern (multi-tenant {tenant}.example.com): its host parameter must not take the asset's file name,
+# and the trim skip must still apply on a matching host ("w " stays "w ", the seed stores both).
+start local false "-e OTM_DOMAIN={tenant}.localhost"
+curl -sf "http://localhost:$PORT/otm-e2e/seed" >/dev/null
+host='Host: acme.localhost'
+js=$(curl -s -H "$host" "http://localhost:$PORT/octane-table-manager" | sed -n 's/.*<script type="module" src="\([^"]*\)".*/\1/p')
+status=$(curl -s -o /dev/null -w '%{http_code}' -H "$host" "http://localhost:$PORT$js")
+fail=0
+[ -n "$js" ] && [ "$status" = 200 ] && echo "OK   domain pattern -> $js $status" || { echo "FAIL domain pattern -> script src '$js' ($status)"; fail=1; }
+row=$(curl -s -H "$host" "http://localhost:$PORT/octane-table-manager/fetch?table=ints&index=w%20")
+case $row in *'"_i":"w "'*) echo "OK   domain pattern keeps 'w '" ;; *) echo "FAIL domain pattern trimmed 'w ' -> $row"; fail=1 ;; esac
+[ $fail = 0 ] || exit 1
+
 # Outside the local environment the manager is closed unless the viewOctaneTableManager gate allows it.
 start production
 status=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/octane-table-manager/list")

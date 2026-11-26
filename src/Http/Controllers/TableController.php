@@ -63,9 +63,10 @@ class TableController extends Controller
         return view('otm::index', compact('baseUrl', 'assets'));
     }
 
-    public function asset(string $file)
+    public function asset(Request $request)
     {
-        $path = self::DIST.'/assets/'.basename($file);
+        // By name: a domain pattern ({tenant}.example.com) adds host parameters ahead of the path ones.
+        $path = self::DIST.'/assets/'.basename($request->route('file'));
 
         abort_unless(is_file($path), 404);
 

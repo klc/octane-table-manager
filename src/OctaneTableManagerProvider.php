@@ -7,6 +7,7 @@ use Illuminate\Foundation\Http\Middleware\TrimStrings;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 use KLC\OctaneTableManager\Http\Middleware\Authorize;
 use KLC\OctaneTableManager\Http\Middleware\LogWrites;
 
@@ -34,7 +35,9 @@ class OctaneTableManagerProvider extends ServiceProvider
         // Global middleware runs before routing, so match the path. An empty prefix shares the app's paths; leave those alone.
         $prefix = trim($routePrefix, '/');
         $domain = Config::get('octane-table-manager.domain');
-        $ours = fn ($request) => $prefix !== '' && $request->is($prefix, $prefix.'/*') && (! $domain || $request->getHost() === $domain);
+        // A domain pattern ({tenant}.example.com) matches any value of its parameters.
+        $ours = fn ($request) => $prefix !== '' && $request->is($prefix, $prefix.'/*')
+            && (! $domain || Str::is(preg_replace('/\{[^}]*\}/', '*', $domain), $request->getHost()));
         TrimStrings::skipWhen($ours);
         ConvertEmptyStringsToNull::skipWhen($ours);
 
