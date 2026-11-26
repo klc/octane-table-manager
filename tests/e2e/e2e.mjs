@@ -183,6 +183,10 @@ const csrf = (await fetch(BASE + '/store', { method: 'POST', headers: { 'Content
 check('foreign POST without XSRF token -> 419', csrf === 419, String(csrf));
 
 // --- Octane's cache table ---
+const binRes = await fetch(`${BASE}/fetch?table=octane:cache`, { headers: { Accept: 'application/json' } });
+const binKeys = binRes.status === 200 ? (await binRes.json()).rows.map(r => r._i) : [];
+check('a cell that is not valid UTF-8 does not break fetch', binRes.status === 200 && binKeys.includes('e2e-key') && binKeys.includes('e2e-bin'),
+    JSON.stringify([binRes.status, binKeys]));
 await open('octane:cache');
 const cacheRow = await page.evaluate(() => document.querySelector('#app')._vnode.component.proxy.tableData.rows.find(r => r._i === 'e2e-key'));
 check('octane:cache lists the raw serialized value', cacheRow?.value === 's:5:"hello";', JSON.stringify(cacheRow));

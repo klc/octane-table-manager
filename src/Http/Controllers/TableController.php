@@ -219,7 +219,8 @@ class TableController extends Controller
             }
         }
 
-        return response()->json($tableData);
+        // Cells are raw bytes (the cache table holds serialize() output); bytes that are not UTF-8 become U+FFFD.
+        return response()->json($tableData, 200, [], JSON_INVALID_UTF8_SUBSTITUTE);
     }
 
     public function update(UpdateRequest $request): JsonResponse

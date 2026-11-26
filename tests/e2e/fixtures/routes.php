@@ -24,6 +24,8 @@ Route::get('/otm-e2e/seed', function () {
 
     // Octane's own cache table, shown read-only as octane:cache.
     Cache::store('octane')->put('e2e-key', 'hello', 600);
+    // A binary value: its cell is not valid UTF-8.
+    Cache::store('octane')->put('e2e-bin', md5('x', true), 600);
 
     // Digits JSON.parse would change (2^64, 1.50) and brackets inside a string.
     Octane::table('docs')->set('d1', ['data' => '{"id":12345678901234567890,"price":1.50,"name":"old","note":"a {b} [c]","tags":[]}']);
