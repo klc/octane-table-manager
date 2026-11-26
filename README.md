@@ -11,6 +11,10 @@ Upgrading from 0.1.x: the old `public/vendor/octane-table-manager` folder is no 
 
 `yourdomain.com/octane-table-manager`
 
+If your app binds its web routes to a domain and has a catch-all route on it (a URL shortener's `/{code}`, a CMS page
+route), set `OTM_DOMAIN` to that domain. Laravel matches domain routes before the others, so without it the
+catch-all answers `/octane-table-manager`.
+
 ## Access
 
 The manager is open only when `APP_ENV=local`. Anywhere else it answers 403 unless the app defines the

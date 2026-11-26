@@ -20,6 +20,7 @@ class OctaneTableManagerProvider extends ServiceProvider
         $middleware = [...Config::get('octane-table-manager.middleware', ['web']), Authorize::class];
 
         Route::group([
+            'domain' => Config::get('octane-table-manager.domain'),
             'prefix' => $routePrefix,
             'middleware' => $middleware,
         ], function () {
