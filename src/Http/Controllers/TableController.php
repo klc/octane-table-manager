@@ -174,15 +174,14 @@ class TableController extends Controller
                     $tableData['rows'][] = $row;
                 }
             }
-        } elseif ($index !== '' && strpbrk($index, '*?[') === false) {
-            // An index without wildcards is a direct lookup; a pattern (user_*) or a column filter walks the table.
-            $data = $table->get($index);
-
+        } elseif ($index !== '' && (($data = $table->get($index)) || strpbrk($index, '*?[') === false)) {
+            // A key that exists is shown as is, even one containing * ? or [. Otherwise an index with wildcards
+            // is a pattern (user_*) and falls through to the walk below, like a column filter.
             if (! $data) {
                 return response()->json(['message' => 'Item not found.'], 404);
             }
 
-            $data['_i'] = $request->get('index');
+            $data['_i'] = $index;
 
             $tableData['rows'][] = $data;
         } else {

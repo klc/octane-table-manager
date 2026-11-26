@@ -164,6 +164,12 @@ check('value over the column size -> 422', (await api('patch', '/update', { tabl
 check('index "0" can be found', (await api('post', '/store', { table: 'nosize', index: '0', data: { v: 5 } }))[0] === 200
     && (await api('get', '/fetch?table=nosize&index=0'))[1]?.rows?.length === 1);
 // From outside the browser: no session, no token, no Sec-Fetch-Site (Laravel 13 lets same-origin browser requests through on that header).
+await api('post', '/store', { table: 'nosize', index: 'k[1]', data: { v: 1 } });
+await api('post', '/store', { table: 'nosize', index: 'k1', data: { v: 2 } });
+const exactBracket = (await api('get', '/fetch?table=nosize&index=' + encodeURIComponent('k[1]')))[1]?.rows?.map(r => r._i);
+const patternK = (await api('get', '/fetch?table=nosize&index=' + encodeURIComponent('k*')))[1]?.rows?.map(r => r._i).sort();
+check('a key containing [ ] is found as itself, k* is still a pattern', JSON.stringify(exactBracket) === '["k[1]"]' && JSON.stringify(patternK) === '["k1","k[1]"]',
+    JSON.stringify([exactBracket, patternK]));
 const csrf = (await fetch(BASE + '/store', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: '{}' })).status;
 check('foreign POST without XSRF token -> 419', csrf === 419, String(csrf));
 
