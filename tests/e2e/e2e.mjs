@@ -356,6 +356,36 @@ if (nfShown) {
 check('an untouched INF cell shows INF and sends nothing; a typed number is saved', nfText === 'INF' && nfLeft?.length === 0 && nfStored === 'INF'
     && nfTyped?.length === 1 && JSON.parse(nfTyped[0]).value === 7, JSON.stringify({ nfShown, nfText, nfLeft, nfStored, nfTyped }));
 
+// --- Line breaks in string cells (the seed below puts users back) ---
+// An <input> drops CR and LF, a <textarea> turns CRLF into LF: typing one character must leave the line breaks as they were.
+const nl = { name: 'line one\nline two', bio: 'a\r\nb\r\nc' };
+const nlStore = await api('post', '/store', { table: 'users', index: 'nl', data: nl });
+await page.getByPlaceholder('Index Search').fill('nl');
+await page.locator('button:has(.pi-search)').click();
+const nlShown = await page.waitForFunction(() => { const r = document.querySelector('#app')._vnode.component.proxy.tableData.rows; return r.length === 1 && r[0]._i === 'nl'; },
+    null, { timeout: 5000 }).then(() => true, () => false);
+const nlLeft = {}, nlSent = {}, nlStored = {};
+for (const [field, col] of nlShown ? [['name', 1], ['bio', 4]] : []) {
+    const before = patches.length;
+    await cell(0, col).click();
+    await page.getByPlaceholder('Index Search').click();
+    await editor().waitFor({ state: 'detached' });
+    await page.waitForTimeout(400);
+    nlLeft[field] = patches.slice(before);
+    await cell(0, col).click();
+    await editor().press('!');
+    await page.getByPlaceholder('Index Search').click();
+    await editor().waitFor({ state: 'detached' });
+    await page.waitForTimeout(600);
+    nlSent[field] = patches.slice(before);
+    nlStored[field] = (await api('get', '/fetch?table=users&index=nl'))[1]?.rows?.[0]?.[field];
+}
+const typedOne = field => nlSent[field]?.length === 1 && nlStored[field]?.length === nl[field].length + 1 && nlStored[field].replace('!', '') === nl[field];
+check('opening and leaving a cell holding line breaks sends nothing', nlStore[0] === 200 && nlShown && nlLeft.name?.length === 0 && nlLeft.bio?.length === 0,
+    JSON.stringify({ nlStore, nlShown, nlLeft }));
+check('an edit in a short string cell keeps its line break', typedOne('name'), JSON.stringify({ sent: nlSent.name, stored: nlStored.name }));
+check('an edit in a string cell keeps its CRLF line breaks', typedOne('bio'), JSON.stringify({ sent: nlSent.bio, stored: nlStored.bio }));
+
 // --- Pattern and column filters (on fresh data) ---
 await fetch(APP + '/otm-e2e/seed');
 const get = async qs => (await fetch(`${BASE}/fetch?table=users&${qs}`, { headers: { Accept: 'application/json' } })).json().then(d => d, () => null);

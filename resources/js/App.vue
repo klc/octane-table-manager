@@ -150,6 +150,16 @@ export default {
                 }
             }
 
+            // A textarea hands every line break back as LF; a value stored with CRLF gets CRLF back, so untouched lines stay as they were.
+            // ponytail: a value mixing CRLF with bare LF (or a lone CR) cannot come back exact, the textarea has already made them all LF.
+            if (typeof value === 'string' && value.includes('\r\n') && typeof newValue === 'string') {
+                newValue = newValue.replace(/\r?\n/g, '\r\n');
+
+                if (newValue === value) {
+                    return;
+                }
+            }
+
             this.saving = axios.patch(`${baseUrl}/update`, {table: this.tableData.table.name, index: data._i, field: field, value: newValue})
                 .then((response) => {
                     this.$toast.add({ severity: 'success', summary: response.data.message, life: 3000 });
@@ -305,6 +315,10 @@ export default {
         storedIsJson(data, field) {
             return isJson(this.tableData.rows.find(row => row._i === data._i)?.[field]);
         },
+        // An <input> drops CR and LF from its value, so a stored line break needs the textarea whatever the column size.
+        storedHasLineBreak(data, field) {
+            return /[\r\n]/.test(this.tableData.rows.find(row => row._i === data._i)?.[field]);
+        },
         showJson(field, row) {
             this.jsonView = {visible: true, title: `${row._i} · ${field}`, text: formatJson(row[field], 2)};
         },
@@ -445,10 +459,10 @@ export default {
                                     <template v-if="column.type === 'string' && storedIsJson(data, field)">
                                         <JsonEditor v-model="data[field]" />
                                     </template>
-                                    <template v-else-if="column.type === 'string' && column.length < 75">
+                                    <template v-else-if="column.type === 'string' && column.length < 75 && !storedHasLineBreak(data, field)">
                                         <InputText v-model="data[field]" :maxlength="column.length" />
                                     </template>
-                                    <template v-else-if="column.type === 'string' && column.length >= 75">
+                                    <template v-else-if="column.type === 'string'">
                                         <Textarea v-model="data[field]" :maxlength="column.length" />
                                     </template>
                                     <template v-else>
