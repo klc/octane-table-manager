@@ -332,6 +332,59 @@ check('UI column filter', (await vm()).rows === 11);
 await open('ints');
 check('switching table clears the column filter', await page.evaluate(() => document.querySelector('#app')._vnode.component.proxy.filterColumn) === null);
 
+// Load More continues the loaded query: rows edited out of the filter must not shift the offset past rows still matching.
+const shownKeys = () => page.evaluate(() => document.querySelector('#app')._vnode.component.proxy.tableData.rows.map(r => r._i));
+const loadMore = async () => {
+    const req = page.waitForRequest(r => r.url().includes('/fetch?') && new URL(r.url()).searchParams.get('offset') !== '0');
+    await page.getByRole('button', { name: 'Load More' }).click();
+    const url = new URL((await req).url());
+    await page.waitForFunction(() => !document.querySelector('#app')._vnode.component.proxy.moreLoader);
+    return url.searchParams;
+};
+await open('users');
+await page.locator('.p-select').click();
+await page.getByRole('option', { name: 'name' }).click();
+await page.getByPlaceholder('Value').fill('user 1');
+await page.getByPlaceholder('Value').press('Enter');
+// The unfiltered view also holds 50 rows: wait for the filtered one.
+await page.waitForFunction(() => document.querySelector('#app')._vnode.component.proxy.tableData.rows.every(r => r.name.includes('user 1')));
+// Two shown rows the server matches through a case fold the client cannot check (non-ASCII); then 5 rows edited out in the UI.
+for (const key of (await shownKeys()).slice(0, 2)) {
+    await api('patch', '/update', { table: 'users', index: key, field: 'name', value: 'USER 1 ş' });
+}
+await page.getByPlaceholder('Value').press('Enter');
+await page.waitForFunction(() => document.querySelector('#app')._vnode.component.proxy.tableData.rows[0].name === 'USER 1 ş');
+for (let i = 0; i < 5; i++) {
+    await clearToasts();
+    await cell(i, 1).click();
+    await editor().fill('done ' + i);
+    await editor().press('Enter');
+    await toast();
+}
+for (let i = 0; i < 5 && (await vm()).hasMore; i++) {
+    await loadMore();
+}
+const stillMatching = [];
+for (let o = 0, more = true; more; o += 50) {
+    const p = await get(`column=name&value=${encodeURIComponent('user 1')}&offset=${o}`);
+    stillMatching.push(...p.rows.map(r => r._i));
+    more = p.has_more;
+}
+let onScreen = new Set(await shownKeys());
+const missing = stillMatching.filter(k => !onScreen.has(k));
+check('Load More after editing rows out of the filter skips no matching row', stillMatching.length === 106 && missing.length === 0 && !(await vm()).hasMore,
+    JSON.stringify({ matching: stillMatching.length, missing }));
+
+// Typing a new search without Enter must not change what Load More fetches.
+await page.getByPlaceholder('Value').press('Enter');
+await page.waitForFunction(() => document.querySelector('#app')._vnode.component.proxy.tableData.rows.length === 50);
+await page.getByPlaceholder('Index Search').fill('u2*');
+const sentQuery = await loadMore();
+onScreen = await shownKeys();
+check('Load More sends the loaded query, not the unsubmitted search', !sentQuery.has('index') && sentQuery.get('column') === 'name' && sentQuery.get('value') === 'user 1'
+    && onScreen.length > 50 && new Set(onScreen).size === onScreen.length && onScreen.every(k => stillMatching.includes(k)),
+    JSON.stringify({ sent: Object.fromEntries(sentQuery), rows: onScreen.length }));
+
 // A Load More that answers after another table was opened must not land in that table.
 await open('users');
 const loadMoreUrl = u => u.pathname.endsWith('/fetch') && u.searchParams.get('offset') === '50';

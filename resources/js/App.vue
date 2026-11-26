@@ -53,14 +53,17 @@ export default {
             // Load More keeps the table on screen; only a fresh load shows the full-page spinner.
             this[loadMore ? 'moreLoader' : 'tableLoader'] = true;
 
-            const offset = loadMore ? this.tableData.rows.length : 0;
+            // Load More continues the query the view was loaded with, not what the search boxes hold now.
+            const query = loadMore ? this.tableData.query
+                : {index: this.searchKey, ...(this.filterColumn ? {column: this.filterColumn, value: this.filterValue} : {})};
 
-            const filter = this.filterColumn ? {column: this.filterColumn, value: this.filterValue} : {};
+            // The server counts the offset over rows matching now, and an edit here can take a shown row out of the filter.
+            const offset = loadMore ? this.shownMatches() + this.tableData.skip : 0;
 
             // Only the latest request may touch the view: an older answer (another table, an older search) is dropped.
             const seq = ++this.fetchSeq;
 
-            axios.get(`${baseUrl}/fetch`, {params: {table: table.name, index: this.searchKey, offset: offset, ...filter}})
+            axios.get(`${baseUrl}/fetch`, {params: {table: table.name, offset: offset, ...query}})
                 .then((response) => {
                     if (seq !== this.fetchSeq) {
                         return;
@@ -68,7 +71,7 @@ export default {
 
                     if (!loadMore) {
                         // Replace tableData only on success, so a failed search keeps the last good view.
-                        this.tableData = {table: table, rows: response.data.rows};
+                        this.tableData = {table: table, query: query, rows: response.data.rows, out: new Set()};
                     }
                     else {
                         // Rows written between pages shift offsets, so drop keys already shown.
@@ -76,6 +79,8 @@ export default {
                         this.tableData['rows'] = [...this.tableData['rows'], ...response.data.rows.filter(row => !known.has(row._i))];
                     }
 
+                    // Rows the server counted that shownMatches() does not (an edit judged out in doubt): the next page still starts after this one.
+                    this.tableData['skip'] = Math.max(0, offset + response.data.rows.length - this.shownMatches());
                     this.tableData['hasMore'] = response.data.has_more;
                     this.tableData['stats'] = response.data.stats;
                     this.tableData['server'] = response.data.server;
@@ -93,6 +98,10 @@ export default {
                         this.moreLoader = false;
                     }
                 });
+        },
+        // Shown rows the server still counts for the loaded query: all it sent, less those edited here out of the column filter.
+        shownMatches() {
+            return this.tableData.rows.filter(row => !this.tableData.out.has(row._i)).length;
         },
         editTableCell: function (event) {
             let { data, value, newValue, field } = event;
@@ -130,6 +139,15 @@ export default {
                 .then((response) => {
                     this.$toast.add({ severity: 'success', summary: response.data.message, life: 3000 });
                     this.tableData.rows.find(row => row._i === data._i)[field] = newValue;
+
+                    // Does the row still match the loaded filter? As TableController::matches(): text contains (any case), numbers equal.
+                    // Only A-Z are folded, so a row is never counted that the server would not count.
+                    const {column, value} = this.tableData.query;
+                    const fold = text => text.replace(/[A-Z]/g, c => c.toLowerCase());
+
+                    if (field === column) {
+                        this.tableData.out[(typeof newValue === 'string' ? fold(newValue).includes(fold(value)) : newValue == value) ? 'delete' : 'add'](data._i);
+                    }
                 })
                 .catch((error) => {
                     this.showError(error);
