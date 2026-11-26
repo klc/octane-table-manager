@@ -18,6 +18,7 @@ export default {
             tableData: null,
             tableLoader: false,
             moreLoader: false,
+            fetchSeq: 0,
             searchKey: null,
             filterColumn: null,
             filterValue: '',
@@ -56,8 +57,15 @@ export default {
 
             const filter = this.filterColumn ? {column: this.filterColumn, value: this.filterValue} : {};
 
+            // Only the latest request may touch the view: an older answer (another table, an older search) is dropped.
+            const seq = ++this.fetchSeq;
+
             axios.get(`${baseUrl}/fetch`, {params: {table: table.name, index: this.searchKey, offset: offset, ...filter}})
                 .then((response) => {
+                    if (seq !== this.fetchSeq) {
+                        return;
+                    }
+
                     if (!loadMore) {
                         // Replace tableData only on success, so a failed search keeps the last good view.
                         this.tableData = {table: table, rows: response.data.rows};
@@ -75,11 +83,15 @@ export default {
                     Object.assign(this.tables.find(t => t.name === table.name), {count: response.data.stats.num, usage: response.data.usage});
                 })
                 .catch((error) => {
-                    this.showError(error);
+                    if (seq === this.fetchSeq) {
+                        this.showError(error);
+                    }
                 })
                 .finally(() => {
-                    this.tableLoader = false;
-                    this.moreLoader = false;
+                    if (seq === this.fetchSeq) {
+                        this.tableLoader = false;
+                        this.moreLoader = false;
+                    }
                 });
         },
         editTableCell: function (event) {

@@ -299,6 +299,23 @@ check('UI column filter', (await vm()).rows === 11);
 await open('ints');
 check('switching table clears the column filter', await page.evaluate(() => document.querySelector('#app')._vnode.component.proxy.filterColumn) === null);
 
+// A Load More that answers after another table was opened must not land in that table.
+await open('users');
+const loadMoreUrl = u => u.pathname.endsWith('/fetch') && u.searchParams.get('offset') === '50';
+const heldRoute = new Promise(resolve => page.route(loadMoreUrl, resolve));
+await page.getByRole('button', { name: 'Load More' }).click();
+const held = await heldRoute;
+await open('ints');
+const intsShown = await page.evaluate(() => document.querySelector('#app')._vnode.component.proxy.tableData.rows.map(r => r._i));
+const lateDone = page.waitForResponse(r => loadMoreUrl(new URL(r.url())));
+await held.continue();
+await (await lateDone).finished();
+await page.waitForTimeout(300);
+await page.unroute(loadMoreUrl);
+const late = await page.evaluate(() => { const p = document.querySelector('#app')._vnode.component.proxy; return { table: p.tableData.table.name, keys: p.tableData.rows.map(r => r._i), more: p.moreLoader }; });
+check('a late Load More does not land in the table opened since', late.table === 'ints' && JSON.stringify(late.keys) === JSON.stringify(intsShown) && !late.more,
+    JSON.stringify({ table: late.table, rows: late.keys.length, more: late.more }));
+
 // --- Theme ---
 const bg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
 const lightBg = await bg();
