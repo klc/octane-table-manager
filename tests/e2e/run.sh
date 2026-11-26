@@ -40,7 +40,7 @@ fi
 
 start() {
     docker rm -f $NAME >/dev/null 2>&1 || true
-    docker run -d --name $NAME -e APP_ENV="$1" -e OTM_READ_ONLY="${2:-false}" -p $PORT:8000 -v "$APP:/app" -v "$ROOT:/package" -w /app $IMAGE \
+    docker run -d --name $NAME -e APP_ENV="$1" -e OTM_READ_ONLY="${2:-false}" ${3:-} -p $PORT:8000 -v "$APP:/app" -v "$ROOT:/package" -w /app $IMAGE \
         php artisan octane:start --server=swoole --host=0.0.0.0 --port=8000 --workers=4 >/dev/null
     for _ in $(seq 1 60); do
         [ "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/otm-e2e/ping")" = 200 ] && return 0
@@ -60,6 +60,12 @@ OTM_E2E_URL="http://localhost:$PORT" OTM_E2E_LOG="$APP/storage/logs/laravel.log"
 start local true
 curl -sf "http://localhost:$PORT/otm-e2e/seed" >/dev/null
 OTM_E2E_URL="http://localhost:$PORT" node "$E2E/e2e.mjs" read-only
+
+# An empty prefix (the manager on its own host, OTM_DOMAIN keeps the app's own / away): URLs stay paths, never //assets.
+start local false "-e OTM_ROUTE_PREFIX= -e OTM_DOMAIN=localhost"
+js=$(curl -s "http://localhost:$PORT/" | sed -n 's/.*<script type="module" src="\([^"]*\)".*/\1/p')
+status=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT$js")
+case $js in /assets/*) [ "$status" = 200 ] ;; *) false ;; esac && echo "OK   empty prefix -> $js $status" || { echo "FAIL empty prefix -> script src '$js' ($status)"; exit 1; }
 
 # Outside the local environment the manager is closed unless the viewOctaneTableManager gate allows it.
 start production

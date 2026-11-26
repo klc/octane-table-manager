@@ -43,7 +43,8 @@ class TableController extends Controller
     {
         $routePrefix = Config::get('octane-table-manager.route_prefix', 'octane-table-manager');
         // Relative, so a TLS-terminating proxy cannot turn it into http:// (mixed content).
-        $baseUrl = request()->getBaseUrl().'/'.trim($routePrefix, '/');
+        // No trailing slash: an empty prefix gives '' (not '/'), else the URLs below would start with // (another host).
+        $baseUrl = rtrim(request()->getBaseUrl().'/'.trim($routePrefix, '/'), '/');
 
         if (is_file(self::DIST.'/octane-table-manager.hot')) {
             // `npm run dev` while working on the package. A fresh Vite instance leaves the app's own one untouched.
