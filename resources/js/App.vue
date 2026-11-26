@@ -290,14 +290,29 @@ export default {
             const shown = this.tableData.rows.slice(0, 200);
             this.liveBusy = true;
 
-            axios.get(`${baseUrl}/fetch`, {params: {table: table.name, keys: shown.map(row => row._i)}})
-                .then(({ data }) => {
+            // The keys go in the URL, and nginx refuses one over 8 KB by default (414): about 4 KB of encoded keys
+            // per request. The browser also encodes ' in a query, so it counts as 3 bytes.
+            const batches = [];
+            let size = Infinity;
+            for (const row of shown) {
+                const length = encodeURIComponent(row._i).replace(/'/g, '%27').length + 8;  // keys[]=…&
+                if (size + length > 4000) {
+                    batches.push([]);
+                    size = 0;
+                }
+                batches.at(-1).push(row._i);
+                size += length;
+            }
+
+            Promise.all(batches.map(keys => axios.get(`${baseUrl}/fetch`, {params: {table: table.name, keys}})))
+                .then(responses => {
                     if (this.tableData?.table !== table) {
                         return;
                     }
 
+                    const data = responses.at(-1).data;
                     // Fresh values in place; rows deleted elsewhere drop out.
-                    const fresh = Object.fromEntries(data.rows.map(row => [row._i, row]));
+                    const fresh = Object.fromEntries(responses.flatMap(response => response.data.rows).map(row => [row._i, row]));
                     this.tableData.rows = [...shown.filter(row => fresh[row._i]).map(row => fresh[row._i]), ...this.tableData.rows.slice(200)];
                     this.tableData.stats = data.stats;
                     Object.assign(this.tables.find(t => t.name === table.name), {count: data.stats.num, usage: data.usage});

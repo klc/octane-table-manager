@@ -46,6 +46,15 @@ Route::get('/otm-e2e/nonfinite', function () {
     return Octane::table('users')->count();
 });
 
+// 60 users with the longest keys there are (63 bytes, mostly ş): too many for one live view URL.
+Route::get('/otm-e2e/longkeys', function () {
+    for ($i = 1; $i <= 60; $i++) {
+        Octane::table('users')->set(sprintf('lk%03d', $i).str_repeat('ş', 29), ['name' => "long $i"]);
+    }
+
+    return Octane::table('users')->count();
+});
+
 // Writes rows into a table until Swoole refuses one; reports the stats along the way.
 Route::get('/otm-e2e/fill/{name}', function (string $name) {
     $table = Octane::table($name);

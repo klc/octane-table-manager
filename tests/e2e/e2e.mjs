@@ -386,6 +386,30 @@ check('opening and leaving a cell holding line breaks sends nothing', nlStore[0]
 check('an edit in a short string cell keeps its line break', typedOne('name'), JSON.stringify({ sent: nlSent.name, stored: nlStored.name }));
 check('an edit in a string cell keeps its CRLF line breaks', typedOne('bio'), JSON.stringify({ sent: nlSent.bio, stored: nlStored.bio }));
 
+// --- Live view with long keys (the seed below puts users back) ---
+// 60 keys of 63 bytes (ş is 6 bytes percent-encoded) would make an 11 KB URL; nginx answers 414 past 8 KB by default.
+await fetch(APP + '/otm-e2e/longkeys');
+await page.getByPlaceholder('Index Search').fill('lk*');
+await page.locator('button:has(.pi-search)').click();
+await page.waitForFunction(() => document.querySelector('#app')._vnode.component.proxy.tableData.rows.length === 50);
+await page.getByRole('button', { name: 'Load More' }).click();
+await page.waitForFunction(() => document.querySelector('#app')._vnode.component.proxy.tableData.rows.length === 60);
+const lkLast = await page.evaluate(() => document.querySelector('#app')._vnode.component.proxy.tableData.rows.at(-1)._i);
+const lkFrom = liveReqs.length;
+await clearToasts();
+await page.getByRole('button', { name: 'Live' }).click();
+await api('patch', '/update', { table: 'users', index: lkLast, field: 'name', value: 'long live' });
+const lkSeen = await page.waitForFunction(k => document.querySelector('#app')._vnode.component.proxy.tableData.rows.find(r => r._i === k)?.name === 'long live',
+    lkLast, { timeout: 6000 }).then(() => true, () => false);
+const lkLive = await page.evaluate(() => document.querySelector('#app')._vnode.component.proxy.live);
+const lkErrors = await page.locator('.p-toast-message').count();
+const lkLens = liveReqs.slice(lkFrom).map(u => u.length);
+check('live view keeps every URL under 8 KB with long keys and stays on', lkLens.length >= 1 && Math.max(...lkLens) < 8192 && lkSeen && lkLive === true && lkErrors === 0,
+    JSON.stringify({ requests: lkLens.length, maxUrl: Math.max(...lkLens), seen: lkSeen, live: lkLive, toasts: lkErrors }));
+if (lkLive) {
+    await page.getByRole('button', { name: 'Live' }).click();
+}
+
 // --- Pattern and column filters (on fresh data) ---
 await fetch(APP + '/otm-e2e/seed');
 const get = async qs => (await fetch(`${BASE}/fetch?table=users&${qs}`, { headers: { Accept: 'application/json' } })).json().then(d => d, () => null);
