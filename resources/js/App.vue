@@ -134,8 +134,6 @@ export default {
         }
     },
     mounted() {
-        console.log("route prefix : ", baseUrl);
-
         axios.get(`${baseUrl}/list`)
             .then((response) => {
                 this.tables = response.data;
