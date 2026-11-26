@@ -14,6 +14,7 @@ export default {
             tables: [],
             tableData: null,
             tableLoader: false,
+            moreLoader: false,
             searchKey: null,
             newItem: {
                 modalVisible: false,
@@ -28,7 +29,8 @@ export default {
                 this.tableData = [];
             }
 
-            this.tableLoader = true;
+            // Load More keeps the table on screen; only a fresh load shows the full-page spinner.
+            this[loadMore ? 'moreLoader' : 'tableLoader'] = true;
 
             const offset = loadMore ? this.tableData.rows.length : 0;
 
@@ -53,6 +55,7 @@ export default {
                 })
                 .finally(() => {
                     this.tableLoader = false;
+                    this.moreLoader = false;
                 });
         },
         editTableCell: function (event) {
@@ -225,7 +228,7 @@ export default {
                             </Column>
                         </DataTable>
                         <div class="mt-4">
-                            <Button @click="fetchTableData(tableData['table'], 1)" :fluid="true" label="Load More" variant="outlined" />
+                            <Button @click="fetchTableData(tableData['table'], 1)" :loading="moreLoader" :fluid="true" label="Load More" variant="outlined" />
                         </div>
                     </Panel>
                     <!----------------------------- Table --------------------------->
