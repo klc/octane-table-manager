@@ -186,7 +186,7 @@ class TableController extends Controller
 
         try {
             $table = Octane::table($request->get('table'));
-            $status = $table->set($request->input('index'), $request->array('data'));
+            $status = $table->set($request->input('index'), (array) $request->input('data'));
 
             if (! $status) {
                 return response()->json(['message' => 'Failed to add new item.'], 400);
