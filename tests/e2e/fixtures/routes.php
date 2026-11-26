@@ -37,6 +37,15 @@ Route::get('/otm-e2e/seed', function () {
     return $users->count();
 });
 
+// Floats JSON has no notation for (an app seeding a running minimum with INF, or storing log(0) or sqrt(-1)).
+Route::get('/otm-e2e/nonfinite', function () {
+    foreach (['nf-inf' => INF, 'nf-ninf' => -INF, 'nf-nan' => NAN] as $key => $score) {
+        Octane::table('users')->set($key, ['name' => $key, 'score' => $score]);
+    }
+
+    return Octane::table('users')->count();
+});
+
 // Writes rows into a table until Swoole refuses one; reports the stats along the way.
 Route::get('/otm-e2e/fill/{name}', function (string $name) {
     $table = Octane::table($name);

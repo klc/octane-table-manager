@@ -299,6 +299,48 @@ await page.locator('tbody textarea').fill('{"broken": ');
 await page.keyboard.press('Tab');
 check('invalid JSON is refused', (await toast()).includes('Not valid JSON') && patches.length === sent + 1);
 
+// --- INF, -INF and NAN in a float column (the seed below puts users back) ---
+// Opened first: once these rows exist, a page that holds one of them is what is being tested.
+await open('users');
+const nfCount = Number(await (await fetch(APP + '/otm-e2e/nonfinite')).text());
+const nfScores = rows => Object.fromEntries((rows ?? []).map(r => [r._i, r.score]).sort(([a], [b]) => a.localeCompare(b)));
+const nfWalk = await api('get', '/fetch?table=users&index=' + encodeURIComponent('nf-*'));
+const nfExact = await api('get', '/fetch?table=users&index=nf-nan');
+const nfKeys = await api('get', '/fetch?table=users&keys[]=nf-inf&keys[]=nf-ninf');
+check('fetch answers INF, -INF and NAN as text (walk, exact index, keys[])',
+    JSON.stringify(nfScores(nfWalk[1]?.rows)) === '{"nf-inf":"INF","nf-nan":"NAN","nf-ninf":"-INF"}'
+    && JSON.stringify(nfScores(nfExact[1]?.rows)) === '{"nf-nan":"NAN"}'
+    && JSON.stringify(nfScores(nfKeys[1]?.rows)) === '{"nf-inf":"INF","nf-ninf":"-INF"}',
+    JSON.stringify([nfWalk, nfExact, nfKeys].map(r => [r[0], r[0] === 200 ? nfScores(r[1].rows) : r[1]])));
+const nfExportText = await (await fetch(`${BASE}/export?table=users`)).text();
+let nfExport = null;
+try { nfExport = JSON.parse(nfExportText); } catch { }
+check('JSON export with INF and NAN parses and has every row', nfExport?.length === nfCount
+    && JSON.stringify(nfScores(nfExport.filter(r => r._index.startsWith('nf-')).map(r => ({ _i: r._index, score: r.score })))) === '{"nf-inf":"INF","nf-nan":"NAN","nf-ninf":"-INF"}',
+    nfExport ? `${nfExport.length}/${nfCount}` : nfExportText.slice(0, 40));
+await page.getByPlaceholder('Index Search').fill('nf-inf');
+await page.locator('button:has(.pi-search)').click();
+const nfShown = await page.waitForFunction(() => { const r = document.querySelector('#app')._vnode.component.proxy.tableData.rows; return r.length === 1 && r[0]._i === 'nf-inf'; },
+    null, { timeout: 5000 }).then(() => true, () => false);
+let nfText = null, nfLeft = null, nfStored = null, nfTyped = null;
+if (nfShown) {
+    nfText = await cell(0, 3).innerText();
+    const before = patches.length;
+    await leave(3, () => editor().press('Enter'));
+    await leave(3, () => page.getByPlaceholder('Index Search').click());
+    await page.waitForTimeout(400);
+    nfLeft = patches.slice(before);
+    nfStored = (await api('get', '/fetch?table=users&index=nf-inf'))[1]?.rows?.[0]?.score;
+    await cell(0, 3).click();
+    await editor().fill('');
+    await editor().pressSequentially('7');
+    await editor().press('Enter');
+    await page.waitForTimeout(600);
+    nfTyped = patches.slice(before);
+}
+check('an untouched INF cell shows INF and sends nothing; a typed number is saved', nfText === 'INF' && nfLeft?.length === 0 && nfStored === 'INF'
+    && nfTyped?.length === 1 && JSON.parse(nfTyped[0]).value === 7, JSON.stringify({ nfShown, nfText, nfLeft, nfStored, nfTyped }));
+
 // --- Pattern and column filters (on fresh data) ---
 await fetch(APP + '/otm-e2e/seed');
 const get = async qs => (await fetch(`${BASE}/fetch?table=users&${qs}`, { headers: { Accept: 'application/json' } })).json().then(d => d, () => null);

@@ -130,6 +130,12 @@ export default {
                 }
             }
 
+            // INF, -INF and NAN arrive as text in a number column; the number editor cannot hold them and leaves null. Untouched is no edit.
+            // ponytail: emptying such a cell is not saved either, typing 0 is.
+            if (typeof value === 'string' && typeof newValue !== 'number' && this.tableData.table.columns.find(c => c.name === field).type !== 'string') {
+                return;
+            }
+
             if (isJson(value)) {
                 // Save compact like the app stored it, and only if it is still JSON.
                 if (!isJson(newValue)) {

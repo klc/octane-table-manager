@@ -220,6 +220,8 @@ class TableController extends Controller
             }
         }
 
+        $tableData['rows'] = array_map(self::encodable(...), $tableData['rows']);
+
         // Cells are raw bytes (the cache table holds serialize() output); bytes that are not UTF-8 become U+FFFD.
         return response()->json($tableData, 200, [], JSON_INVALID_UTF8_SUBSTITUTE);
     }
@@ -295,7 +297,7 @@ class TableController extends Controller
                     }
                     fputcsv($buffer, [$key, ...array_values($row)], escape: '');
                 } else {
-                    fwrite($buffer, ($first ? '[' : ',').json_encode(['_index' => $key] + $row, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE));
+                    fwrite($buffer, ($first ? '[' : ',').json_encode(['_index' => $key] + self::encodable($row), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE));
                 }
                 $first = false;
 
@@ -403,6 +405,18 @@ class TableController extends Controller
     private static function matches(int|float|string $cell, ?string $value): bool
     {
         return is_string($cell) ? mb_stripos($cell, (string) $value) !== false : is_numeric($value) && $cell == $value;
+    }
+
+    // JSON has no INF or NAN: a float cell holding one goes out as the text "INF", "-INF" or "NAN", not as 0.
+    private static function encodable(array $row): array
+    {
+        foreach ($row as $column => $cell) {
+            if (is_float($cell) && ! is_finite($cell)) {
+                $row[$column] = is_nan($cell) ? 'NAN' : ($cell > 0 ? 'INF' : '-INF');
+            }
+        }
+
+        return $row;
     }
 
     private function table(string $name)
