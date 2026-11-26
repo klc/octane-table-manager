@@ -81,6 +81,7 @@ class TableController extends Controller
         $tableData = [];
         $tableData['stats'] = $table->stats();
         $tableData['stats']['memory'] = number_format(($table->memorySize / 1024), 2, '.', '').' KB';
+        $tableData['rows'] = [];
 
         if (! $request->boolean('load_more')) {
             $table->rewind();
