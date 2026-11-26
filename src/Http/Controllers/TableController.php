@@ -10,6 +10,7 @@ use KLC\OctaneTableManager\Http\Requests\DeleteRequest;
 use KLC\OctaneTableManager\Http\Requests\FetchRequest;
 use KLC\OctaneTableManager\Http\Requests\StoreRequest;
 use KLC\OctaneTableManager\Http\Requests\UpdateRequest;
+use Laravel\Octane\Exceptions\ValueTooLargeForColumnException;
 use Laravel\Octane\Facades\Octane;
 
 class TableController extends Controller
@@ -193,6 +194,9 @@ class TableController extends Controller
             if (! $status) {
                 return response()->json(['message' => 'Failed to update item.'], 400);
             }
+        } catch (ValueTooLargeForColumnException $exception) {
+            // Octane checks string sizes in bytes; the browser counts characters, and ş, ğ, ü... take 2 bytes.
+            return response()->json(['message' => $exception->getMessage().' Column sizes are in bytes, and characters like ş take 2.'], 422);
         } catch (\Throwable $exception) {
             return response()->json(['message' => $exception->getMessage()], 500);
         }
@@ -241,6 +245,9 @@ class TableController extends Controller
                 return response()->json(['message' => 'Failed to add new item.'], 400);
             }
 
+        } catch (ValueTooLargeForColumnException $exception) {
+            // Octane checks string sizes in bytes; the browser counts characters, and ş, ğ, ü... take 2 bytes.
+            return response()->json(['message' => $exception->getMessage().' Column sizes are in bytes, and characters like ş take 2.'], 422);
         } catch (\Throwable $exception) {
             return response()->json(['message' => $exception->getMessage()], 500);
         }
