@@ -134,6 +134,8 @@ class TableController extends Controller
         $tableData['stats']['memory'] = number_format(($table->memorySize / 1024), 2, '.', '').' KB';
         $tableData['rows'] = [];
         $tableData['has_more'] = false;
+        // Each Octane server keeps its own tables; say which one answered.
+        $tableData['server'] = gethostname();
 
         if ($request->filled('index')) {
             $data = $table->get($request->get('index'));

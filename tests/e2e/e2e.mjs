@@ -45,6 +45,7 @@ check('sidebar badge count/limit', (await page.locator('.p-panelmenu a', { hasTe
 
 await open('users');
 check('headers show config definitions', (await page.locator('thead').innerText()).replace(/\s+/g, ' ').includes('age [int] score [float] bio [string]'));
+check('answering server is shown', /Server: \S+/.test(await page.locator('.p-panel').first().innerText()));
 check('icon font loaded', await page.evaluate(async () => { await document.fonts.ready; return [...document.fonts].some(f => f.family.includes('primeicons') && f.status === 'loaded'); }));
 
 // Load More to the end; the table stays mounted

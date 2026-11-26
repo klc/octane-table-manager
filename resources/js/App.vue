@@ -44,6 +44,7 @@ export default {
 
                     this.tableData['hasMore'] = response.data.has_more;
                     this.tableData['stats'] = response.data.stats;
+                    this.tableData['server'] = response.data.server;
 
                     this.tables.find(t => t.name === table.name).count = response.data.stats.num;
                 })
@@ -174,6 +175,9 @@ export default {
 
                     <!-------------------------- Table Info ------------------------>
                     <Panel class="mb-2">
+                        <p class="mb-2 text-sm text-surface-500" title="Swoole tables live in each server's memory. Behind a load balancer, other servers hold different data.">
+                            Server: <b>{{ tableData.server }}</b>
+                        </p>
                         <div class="flex">
                             <div class="card flex-1/3">
                                 <p><b>Item Count : </b> {{ tableData.stats.num }}</p>

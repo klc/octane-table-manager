@@ -15,6 +15,13 @@ If your app binds its web routes to a domain and has a catch-all route on it (a 
 route), set `OTM_DOMAIN` to that domain. Laravel matches domain routes before the others, so without it the
 catch-all answers `/octane-table-manager`.
 
+## Several servers
+
+A Swoole table lives in the memory of one Octane server. Behind a load balancer with several servers or
+containers, each holds its own copy: the manager shows and edits the tables of whichever server answers the
+request. The server's hostname is shown above the table stats. To look at one server, open the manager on that
+server directly.
+
 ## Access
 
 The manager is open only when `APP_ENV=local`. Anywhere else it answers 403 unless the app defines the
