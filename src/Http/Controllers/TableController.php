@@ -248,7 +248,7 @@ class TableController extends Controller
 
             // Write only this column: writing the whole row back would undo another worker's change to the others.
             // ConvertEmptyStringsToNull turns an emptied cell into null; store it as ''.
-            $status = $table->set($request->input('index'), [$request->input('field') => $request->input('value') ?? '']);
+            $status = $table->set($request->input('index'), self::typed($request->input('table'), [$request->input('field') => $request->input('value') ?? '']));
 
             if (! $status) {
                 return response()->json(['message' => 'Failed to update item.'], 400);
@@ -378,7 +378,7 @@ class TableController extends Controller
                 return response()->json(['message' => 'An item with this index already exists.'], 409);
             }
 
-            $status = $table->set($request->input('index'), (array) $request->input('data'));
+            $status = $table->set($request->input('index'), self::typed($request->input('table'), (array) $request->input('data')));
 
             if (! $status) {
                 return response()->json(['message' => 'Failed to add new item.'], 400);
@@ -426,6 +426,30 @@ class TableController extends Controller
         }
 
         return $row;
+    }
+
+    // OpenSwoole's set() stores a value of another type (2 in a float column, '' in an int one) converted, then
+    // throws; Swoole converts silently. Converted here the same way, both store it and answer 200.
+    private static function typed(string $table, array $values): array
+    {
+        foreach (Config::get('octane.tables') ?? [] as $tableKey => $columns) {
+            if (explode(':', $tableKey)[0] !== $table) {
+                continue;
+            }
+
+            foreach ($values as $column => $value) {
+                // Arrays go on as before.
+                if (isset($columns[$column]) && (is_scalar($value) || $value === null)) {
+                    $values[$column] = match (explode(':', $columns[$column])[0]) {
+                        'int' => (int) $value,
+                        'float' => (float) $value,
+                        default => (string) $value,
+                    };
+                }
+            }
+        }
+
+        return $values;
     }
 
     private function table(string $name)

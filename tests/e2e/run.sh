@@ -91,6 +91,8 @@ fail=0
 case $list in *'"name":"users"'*'"count":230'*' 200') echo "OK   openswoole list" ;; *) echo "FAIL openswoole list -> $(echo "$list" | head -c 300)"; fail=1 ;; esac
 case $fetch in *'"num":230'*'"_i":"u'*' 200') echo "OK   openswoole fetch" ;; *) echo "FAIL openswoole fetch -> $(echo "$fetch" | head -c 300)"; fail=1 ;; esac
 [ $fail = 0 ] || exit 1
+# Its set() throws on a value not of the column's type (a whole number in a float cell, an emptied number cell).
+OTM_E2E_URL="http://localhost:$PORT" node "$E2E/e2e.mjs" openswoole
 
 # Outside the local environment the manager is closed unless the viewOctaneTableManager gate allows it.
 start production

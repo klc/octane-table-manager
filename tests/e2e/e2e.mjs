@@ -32,6 +32,39 @@ if (process.argv[2] === 'read-only') {
     process.exit(failed ? 1 : 0);
 }
 
+// --- OpenSwoole (run.sh starts the app on OpenSwoole and passes "openswoole") ---
+// Its set() throws on a value that is not of the column's PHP type, after storing it; the UI sends such values.
+if (process.argv[2] === 'openswoole') {
+    const browser = await chromium.launch({ channel: process.env.PW_CHANNEL, headless: true });
+    const page = await browser.newPage();
+    await page.goto(BASE);
+    await page.locator('.p-badge').first().waitFor();
+    const api = (m, u, d) => page.evaluate(async ([m, u, d]) => {
+        try { const r = await window.axios({ method: m, url: baseUrl + u, data: d }); return [r.status, r.data]; }
+        catch (e) { return [e.response?.status, e.response?.data?.message]; }
+    }, [m, u, d]);
+    const row = async index => (await api('get', `/fetch?table=users&index=${index}`))[1]?.rows?.[0];
+    const edit = async (field, value, stored) => {
+        const res = await api('patch', '/update', { table: 'users', index: 'u1', field, value });
+        const now = (await row('u1'))?.[field];
+        check(`openswoole: update ${field} = ${JSON.stringify(value)} -> 200, stored ${JSON.stringify(stored)}`, res[0] === 200 && now === stored, JSON.stringify([res, now]));
+    };
+    await edit('score', 2, 2);
+    await edit('age', '', 0);
+    await edit('age', 7, 7);
+    await edit('score', 3.14159, 3.14159);
+    await edit('name', 'renamed', 'renamed');
+    const item = { table: 'users', index: 'os-new', data: { name: 'x', age: 4, score: 3 } };
+    const first = await api('post', '/store', item);
+    const again = await api('post', '/store', item);
+    const stored = await row('os-new');
+    const found = (await api('get', '/fetch?table=users&index=os-*'))[1]?.rows?.length;
+    check('openswoole: store with whole numbers -> 200, then 409', first[0] === 200 && again[0] === 409 && found === 1
+        && stored?.name === 'x' && stored?.age === 4 && stored?.score === 3, JSON.stringify([first, again, found, stored]));
+    await browser.close();
+    process.exit(failed ? 1 : 0);
+}
+
 // --- API: pagination must not depend on which worker answers (4 workers, parallel requests) ---
 const page_ = async offset => (await (await fetch(`${BASE}/fetch?table=users&offset=${offset}`, { headers: { Connection: 'close' } })).json()).rows.map(r => r._i);
 const pages = await Promise.all([0, 50, 100, 150, 200, 250].map(page_));
