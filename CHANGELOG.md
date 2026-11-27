@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (0.2.0)
+## 0.2.0
 
 ### Breaking
 
@@ -30,8 +30,11 @@
   numbers equal. Load More pages through the matches.
 - A filter box and a sort-by-usage toggle for the table list.
 - The hostname of the server that answered is shown above the stats (each Octane server has its own tables).
-- `OTM_DOMAIN` for apps whose routes are bound to a domain and end in a catch-all route.
-- End-to-end tests on Laravel 10–13 with Octane and Swoole, and a CI workflow.
+- `OTM_DOMAIN` for apps whose routes are bound to a domain and end in a catch-all route. It can be a pattern
+  like `{tenant}.example.com`.
+- Works on OpenSwoole (tested with 25.2). OpenSwoole reports no slot statistics, so there the stats panel
+  shows only the item count and the sidebar badges never turn yellow or red.
+- End-to-end tests on Laravel 10–13 with Octane and Swoole, one stage on OpenSwoole, and a CI workflow.
 
 ### Fixed
 
@@ -46,6 +49,13 @@
 - The UI no longer crashes on an empty table, past the last page, or on a search that finds nothing.
 - Wide tables stay inside the page; long values stop at three lines.
 - Laravel 10 support (`$request->array()` and Blade `@use` were Laravel 11 only).
+- The app's `TrimStrings` and `ConvertEmptyStringsToNull` middleware no longer change the manager's requests:
+  an index or value keeps its leading and trailing spaces (not with an empty `route_prefix`, where the paths
+  are shared with the app).
+- A table with cells that are not UTF-8 (binary data) or with `INF` / `NAN` floats loads instead of answering
+  500: such bytes show as U+FFFD, the floats as text.
+- Leaving a number cell without typing no longer saves the value the editor rounded or cut.
+- Editing a string cell keeps its line breaks.
 
 ## 0.1.3
 
